@@ -800,15 +800,19 @@ class App:
         self.c_cats.bind("<Configure>", lambda e: setattr(self, "_cats_key", None))
 
         ttk.Separator(f).pack(fill="x", pady=12)
+        # 1段目: 記録を見る（この PC / ウェブ）、2段目: 表示と設定
         b = ttk.Frame(f)
         b.pack(fill="x")
+        b.columnconfigure((0, 1), weight=1, uniform="btn")
         ttk.Button(b, text="📊 ダッシュボード", style="Accent.TButton", command=self.open_dashboard) \
-            .pack(side="left", fill="x", expand=True)
+            .grid(row=0, column=0, sticky="ew", padx=(0, 3), pady=(0, 6))
+        ttk.Button(b, text="🌐 ウェブで見る", style="Accent.TButton", command=self.open_web) \
+            .grid(row=0, column=1, sticky="ew", padx=(3, 0), pady=(0, 6))
         self.v_overlay = tk.BooleanVar(value=self.config["overlay"]["enabled"])
         ttk.Checkbutton(b, text="🪟 オーバーレイ", variable=self.v_overlay, style="Toggle.TButton",
                         command=lambda: self.set_overlay(self.v_overlay.get())) \
-            .pack(side="left", fill="x", expand=True, padx=6)
-        ttk.Button(b, text="⚙ 設定", command=self.open_settings).pack(side="left", fill="x", expand=True)
+            .grid(row=1, column=0, sticky="ew", padx=(0, 3))
+        ttk.Button(b, text="⚙ 設定", command=self.open_settings).grid(row=1, column=1, sticky="ew", padx=(3, 0))
 
         self.l_discord = ttk.Label(f, text="", foreground=self.sub_color, font=BODY_FONT)
         self.l_discord.pack(anchor="w", pady=(12, 0))
@@ -878,6 +882,7 @@ class App:
         menu = pystray.Menu(
             pystray.MenuItem("開く", lambda: put("show"), default=True),
             pystray.MenuItem("ダッシュボード", lambda: put("dashboard")),
+            pystray.MenuItem("ウェブで見る", lambda: put("web")),
             pystray.MenuItem("オーバーレイ", lambda: put("overlay"),
                              checked=lambda item: self.config["overlay"]["enabled"]),
             pystray.MenuItem("設定", lambda: put("settings")),
@@ -912,6 +917,8 @@ class App:
                 self.show()
             elif ev == "dashboard":
                 self.open_dashboard()
+            elif ev == "web":
+                self.open_web()
             elif ev == "overlay":
                 self.set_overlay(not self.config["overlay"]["enabled"])
             elif ev == "settings":
@@ -1102,6 +1109,12 @@ class App:
     def _overlay_moved(self, x, y):
         self.config["overlay"]["x"], self.config["overlay"]["y"] = x, y
         core.save_config(self.config)
+
+    def open_web(self):
+        """ウェブサイトの「記録を見る」ページを開く（ログインしていなければログイン画面）"""
+        webbrowser.open(core.WEBSITE_URL + "app.html")
+        if not self.cloud.logged_in:
+            self._notify("ウェブで見るには、アプリの「設定 → アカウント」でもログインして記録を同期してください。")
 
     def open_dashboard(self):
         try:

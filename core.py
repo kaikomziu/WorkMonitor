@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from discord_rpc import DiscordPresence
 
 APP_NAME = "WorkMonitor"
-APP_VERSION = "1.3.0"
+APP_VERSION = "1.3.1"
 GITHUB_REPO = "kaikomziu/WorkMonitor"  # アップデート確認に使う
 WEBSITE_URL = "https://kaikomziu.github.io/WorkMonitor/"
 
