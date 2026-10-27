@@ -11,6 +11,7 @@ import ctypes.wintypes as wt
 import glob
 import json
 import os
+import re
 import threading
 import time
 from collections import defaultdict
@@ -19,7 +20,7 @@ from datetime import datetime, timedelta
 from discord_rpc import DiscordPresence
 
 APP_NAME = "WorkMonitor"
-APP_VERSION = "1.2.0"
+APP_VERSION = "1.2.1"
 GITHUB_REPO = "kaikomziu/WorkMonitor"  # アップデート確認に使う
 WEBSITE_URL = "https://kaikomziu.github.io/WorkMonitor/"
 
@@ -75,6 +76,11 @@ KNOWN_APPS = {
     "msedge.exe": ("Edge", "ブラウザ"),
     "firefox.exe": ("Firefox", "ブラウザ"),
     "brave.exe": ("Brave", "ブラウザ"),
+    "vivaldi.exe": ("Vivaldi", "ブラウザ"),
+    "opera.exe": ("Opera", "ブラウザ"),
+    "arc.exe": ("Arc", "ブラウザ"),
+    "floorp.exe": ("Floorp", "ブラウザ"),
+    "zen.exe": ("Zen", "ブラウザ"),
     "excel.exe": ("Excel", "資料作成"),
     "winword.exe": ("Word", "資料作成"),
     "powerpnt.exe": ("PowerPoint", "資料作成"),
@@ -89,6 +95,7 @@ KNOWN_APPS = {
     "slack.exe": ("Slack", "コミュニケーション"),
     "ms-teams.exe": ("Teams", "コミュニケーション"),
     "zoom.exe": ("Zoom", "コミュニケーション"),
+    "line.exe": ("LINE", "コミュニケーション"),
 }
 SYSTEM_CATEGORY = "Windows"
 DEFAULT_CATEGORIES = ["開発", "ブラウザ", "資料作成", "デザイン", "コミュニケーション", SYSTEM_CATEGORY, "その他"]
@@ -160,6 +167,39 @@ def save_config(config):
 
 def effective_client_id(config):
     return (config.get("discord_client_id") or DEFAULT_DISCORD_CLIENT_ID).strip()
+
+
+BROWSERS = {"chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "vivaldi.exe", "opera.exe",
+            "arc.exe", "floorp.exe", "zen.exe"}
+# ブラウザがタイトルの最後に付ける名前と、Edge のプロファイル名
+BROWSER_SUFFIXES = ("google chrome", "microsoft edge", "mozilla firefox", "firefox", "brave", "vivaldi",
+                    "opera", "arc", "floorp", "zen browser", "個人", "personal", "職場", "work")
+TITLE_SEPARATOR = re.compile(r"\s+[-–—]\s+|\s*[|｜]\s*")
+UNREAD_PREFIX = re.compile(r"^(\(\d+\+?\)|[●*•])\s*")
+GITHUB_REPO_TITLE = re.compile(r"^(GitHub\s*-\s*)?[\w.-]+/[\w.-]+(:|\s|$)")  # 「owner/repo: 説明」
+ON_SITE_SUFFIX = re.compile(r"\s+on\s+(Scratch|X|Twitter|Bluesky)$")
+
+
+def window_label(app, title):
+    """集計で使う「サイト・ウィンドウ名」
+
+    ブラウザはページごとにタイトルが変わるので、最後の区切りの後ろ（サイト名）でまとめる。
+    例: 「(30) 人生『1レーン』 - YouTube - Vivaldi」→「YouTube」
+    ほかのアプリは未読数や未保存の印だけ取り除く。
+    """
+    title = UNREAD_PREFIX.sub("", title.strip())
+    if app.lower() not in BROWSERS:
+        return title
+    parts = [p for p in TITLE_SEPARATOR.split(title) if p]
+    while len(parts) > 1 and parts[-1].strip().lower() in BROWSER_SUFFIXES:
+        parts.pop()
+    if not parts or parts[0].strip().lower() in BROWSER_SUFFIXES:
+        return "（新しいタブ）"
+    if GITHUB_REPO_TITLE.match(parts[0]):
+        return "GitHub"
+    site = UNREAD_PREFIX.sub("", parts[-1].strip())
+    m = ON_SITE_SUFFIX.search(site)   # 「作品名 on Scratch」の形
+    return m.group(1) if m else site
 
 
 def app_info(config, app):

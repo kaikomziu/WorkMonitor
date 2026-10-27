@@ -58,7 +58,7 @@ def run_report(date_str):
             sec = float(row["seconds"])
             by_cat[info["category"]] += sec
             by_app[info["name"]] += sec
-            by_title[(info["name"], row["title"])] += sec
+            by_title[(info["name"], core.window_label(row["app"], row["title"]))] += sec
             by_hour[int(row["start"][:2])] += sec
 
     total = sum(by_app.values())
@@ -74,7 +74,7 @@ def run_report(date_str):
         pct = sec / total * 100 if total else 0
         print(f"  {fmt(sec):>10}  {pct:5.1f}%  {app}")
 
-    print("\n[ウィンドウ別 上位10件]")
+    print("\n[サイト・ウィンドウ別 上位10件]")
     for (app, title), sec in sorted(by_title.items(), key=lambda x: -x[1])[:10]:
         print(f"  {fmt(sec):>10}  {app} - {title[:60]}")
 

@@ -11,9 +11,10 @@ MAX_DAYS = 400  # 埋め込む日数（月・前月比較に足りる分。古�
 
 
 def load_logs(config):
-    """日付 → [[開始, 秒, 表示名, タイトル, カテゴリ], ...]（作業に数えないアプリは除く）
+    """日付 → [[開始, 秒, 表示名, サイト・ウィンドウ名, カテゴリ], ...]（作業に数えないアプリは除く）
 
     表示名・カテゴリは今の設定で引き直すので、設定を変えると過去の記録にも反映される。
+    ブラウザはページのタイトルではなくサイト名でまとめる（core.window_label）。
     """
     data = {}
     files = sorted(glob.glob(os.path.join(core.LOG_DIR, "????-??-??.csv")))[-MAX_DAYS:]
@@ -24,7 +25,8 @@ def load_logs(config):
             for r in csv.DictReader(f):
                 info = core.app_info(config, r["app"])
                 if info["count"]:
-                    rows.append([r["start"], int(float(r["seconds"])), info["name"], r["title"], info["category"]])
+                    rows.append([r["start"], int(float(r["seconds"])), info["name"],
+                                 core.window_label(r["app"], r["title"]), info["category"]])
         data[date] = rows
     return data
 
@@ -238,8 +240,8 @@ function render(key) {
         ${apps.slice(0,15).map(([a,s])=>`<tr><td>${esc(a)}</td><td><span class="tag">${esc(appCat[a])}</span></td><td class="num">${fmt(s)}</td><td class="num">${(s/base*100).toFixed(1)}%</td></tr>`).join('')}
         </tbody></table></div>
     </div>
-    <div class="card"><h2>ウィンドウ別 上位15件</h2>
-      <table><thead><tr><th>アプリ</th><th>ウィンドウ</th><th class="num">時間</th></tr></thead><tbody>
+    <div class="card"><h2>サイト・ウィンドウ別 上位15件</h2>
+      <table><thead><tr><th>アプリ</th><th>サイト・ウィンドウ</th><th class="num">時間</th></tr></thead><tbody>
       ${titles.map(([k,s])=>{const [a,t]=k.split('\u0000');return `<tr><td>${esc(a)}</td><td class="title" title="${esc(t)}">${esc(t)||'-'}</td><td class="num">${fmt(s)}</td></tr>`}).join('')}
       </tbody></table></div>`;
 
