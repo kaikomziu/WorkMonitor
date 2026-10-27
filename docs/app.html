@@ -27,6 +27,14 @@
   .auth .alt { margin-top: 14px; font-size: 14px; text-align: center; }
   .hidden { display: none !important; }
   .check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--sub); margin: 4px 0 8px; }
+  .modal { position: fixed; inset: 0; z-index: 50; background: rgba(10, 12, 18, .55); display: grid; place-items: center; padding: 16px; }
+  .modal-box { width: min(480px, 100%); }
+  .modal-box h2 { font-size: 18px; color: var(--down); }
+  .modal-box code { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; color: var(--text); }
+  .danger-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; flex-wrap: wrap; }
+  .btn.danger-fill { background: var(--down); border-color: var(--down); color: #fff; }
+  .btn.danger-fill[disabled] { background: var(--card); color: var(--sub); border-color: var(--line); }
+  .account-box + .account-box { margin-top: 12px; }
   .account-box { margin-top: 24px; display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
   .account-box > div { flex: 1 1 280px; }
   .btn.danger { color: var(--down); border-color: color-mix(in srgb, var(--down) 45%, var(--line)); }
@@ -110,10 +118,32 @@
     <p class="sub small" id="sync-info" style="margin-top:12px"></p>
     <div class="card account-box">
       <div>
-        <b>アカウント</b>
+        <b>記録の削除</b>
+        <div class="sub small">クラウドに同期した記録と設定をすべて削除します。アカウントはそのまま使えます（PC の記録は残ります）。</div>
+      </div>
+      <button class="btn danger" id="delete-data">記録をすべて削除</button>
+    </div>
+    <div class="card account-box">
+      <div>
+        <b>アカウントの削除</b>
         <div class="sub small">アカウントを削除すると、クラウドの記録・暗号鍵・同意の記録がすべて削除され、元に戻せません（PC の記録は残ります）。</div>
       </div>
       <button class="btn danger" id="delete-account">アカウントを削除</button>
+    </div>
+  </div>
+
+  <!-- 削除の確認（決まった文を入力 → 同意 → 5秒待つ → 3回押す） -->
+  <div class="modal hidden" id="danger" role="dialog" aria-modal="true" aria-labelledby="danger-title">
+    <div class="card modal-box">
+      <h2 id="danger-title"></h2>
+      <p class="sub small" id="danger-desc"></p>
+      <label class="field"><span>確認のため <code id="danger-phrase"></code> と入力してください</span>
+        <input type="text" id="danger-input" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      <label class="check"><input type="checkbox" id="danger-agree"> 内容を理解し、削除に同意します</label>
+      <div class="danger-actions">
+        <button class="btn" id="danger-cancel" type="button">キャンセル</button>
+        <button class="btn danger-fill" id="danger-ok" type="button" disabled></button>
+      </div>
     </div>
   </div>
 </main>

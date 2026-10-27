@@ -114,6 +114,115 @@ def fmt_goal(minutes):
     return (f"{h}時間" if h else "") + (f"{m}分" if m or not h else "")
 
 
+# ===== 削除の確認 =====
+class DangerConfirm(tk.Toplevel):
+    """決まった文を入力 → 同意にチェック → 5秒待つ → ボタンを3回押す、で初めて実行する確認画面
+
+    途中で入力やチェックを変えたら最初からやり直し。on_done には、キャンセルなら None、
+    実行なら options の選択結果（dict）を渡す。
+    """
+    WAIT_SEC = 5
+    PRESSES = 3
+
+    def __init__(self, parent, app, title, desc, phrase, action, options=(), on_done=None):
+        super().__init__(parent)
+        self.app, self.phrase, self.action, self.on_done = app, phrase, action, on_done
+        self.title(title)
+        self.resizable(False, False)
+        self.transient(parent)
+        self.iconphoto(False, app.icon_photo)
+        self.protocol("WM_DELETE_WINDOW", self._cancel)
+
+        f = ttk.Frame(self, padding=20)
+        f.pack(fill="both", expand=True)
+        wrap = int(app.wrap * 0.8)
+        ttk.Label(f, text=title, font=(FONT, 13, "bold"), foreground="#d9534f").pack(anchor="w")
+        ttk.Label(f, text=jp(desc), foreground=app.sub_color, wraplength=wrap, justify="left").pack(anchor="w", pady=(6, 10))
+
+        self.options = {}
+        for key, label, default, enabled in options:
+            var = tk.BooleanVar(value=default and enabled)
+            ttk.Checkbutton(f, text=label, variable=var, command=self._update,
+                            state="normal" if enabled else "disabled").pack(anchor="w", pady=2)
+            self.options[key] = var
+
+        ttk.Label(f, text=f"確認のため「{phrase}」と入力してください").pack(anchor="w", pady=(12, 4))
+        self.v_text = tk.StringVar()
+        entry = ttk.Entry(f, font=BODY_FONT, textvariable=self.v_text, width=40)
+        entry.pack(fill="x")
+        # 貼り付けではなく、自分で打ってもらう
+        for seq in ("<<Paste>>", "<Control-v>", "<Control-V>", "<Shift-Insert>", "<Button-2>", "<Button-3>"):
+            entry.bind(seq, lambda e: "break")
+        self.v_text.trace_add("write", lambda *a: self._update())
+        self.v_agree = tk.BooleanVar(value=False)
+        ttk.Checkbutton(f, text="内容を理解し、削除に同意します", variable=self.v_agree, command=self._update) \
+            .pack(anchor="w", pady=(10, 0))
+
+        b = ttk.Frame(f)
+        b.pack(fill="x", pady=(16, 0))
+        self.b_ok = ttk.Button(b, command=self._press)
+        self.b_ok.pack(side="right")
+        ttk.Button(b, text="キャンセル", command=self._cancel).pack(side="right", padx=8)
+
+        self.ready = False
+        self.left = 0
+        self.presses = self.PRESSES
+        self._after = None
+        self._render()
+        dark_title_bar(self, app.dark)
+        self.bind("<Escape>", lambda e: self._cancel())
+        self.grab_set()
+        entry.focus_set()
+
+    def _conditions_met(self):
+        any_option = not self.options or any(v.get() for v in self.options.values())
+        return self.v_text.get() == self.phrase and self.v_agree.get() and any_option
+
+    def _update(self):
+        ok = self._conditions_met()
+        if ok and not self.ready:          # 条件がそろった時点から5秒数える
+            self.ready, self.presses, self.left = True, self.PRESSES, self.WAIT_SEC
+            self._after = self.after(1000, self._tick)
+        elif not ok and self.ready:        # 崩れたら最初から
+            self.ready, self.presses, self.left = False, self.PRESSES, 0
+            if self._after:
+                self.after_cancel(self._after)
+                self._after = None
+        self._render()
+
+    def _tick(self):
+        self.left -= 1
+        self._after = self.after(1000, self._tick) if self.left > 0 else None
+        self._render()
+
+    def _render(self):
+        if not self.ready:
+            self.b_ok.configure(text="入力と同意をしてください", state="disabled")
+        elif self.left > 0:
+            self.b_ok.configure(text=f"あと {self.left} 秒お待ちください", state="disabled")
+        else:
+            self.b_ok.configure(text=f"{self.action}（あと {self.presses} 回押す）", state="normal")
+
+    def _press(self):
+        if not self.ready or self.left > 0:
+            return
+        self.presses -= 1
+        if self.presses > 0:
+            self._render()
+            return
+        result = {k: v.get() for k, v in self.options.items()}
+        self.destroy()
+        if self.on_done:
+            self.on_done(result)
+
+    def _cancel(self):
+        if self._after:
+            self.after_cancel(self._after)
+        self.destroy()
+        if self.on_done:
+            self.on_done(None)
+
+
 # ===== 設定画面 =====
 class SettingsDialog(tk.Toplevel):
     def __init__(self, app, tab=0):
@@ -201,6 +310,12 @@ class SettingsDialog(tk.Toplevel):
         ttk.Button(r, text="今すぐアップデートを確認", command=lambda: self.app.check_update(manual=True)) \
             .pack(side="left", padx=8)
         ttk.Label(r, text=f"バージョン {core.APP_VERSION}", foreground=self.app.sub_color).pack(side="right")
+        ttk.Separator(f).pack(fill="x", pady=10)
+        d = ttk.Frame(f)
+        d.pack(fill="x")
+        ttk.Label(d, text="作業の記録を削除します（この PC・クラウドを選べます。設定とアカウントは残ります）",
+                  foreground=self.app.sub_color).pack(side="left")
+        ttk.Button(d, text="記録をすべて削除…", command=self._delete_data).pack(side="right")
 
     def open_data_dir(self):
         os.makedirs(core.DATA_DIR, exist_ok=True)
@@ -500,8 +615,9 @@ class SettingsDialog(tk.Toplevel):
             self._link(d, "利用規約", core.TERMS_URL).pack(side="left")
             ttk.Label(d, text=" ・ ").pack(side="left")
             self._link(d, "プライバシーポリシー", core.PRIVACY_URL).pack(side="left")
-            self.b_delete = ttk.Button(d, text="アカウントを削除", command=self._delete_account)
+            self.b_delete = ttk.Button(d, text="アカウントを削除…", command=self._delete_account)
             self.b_delete.pack(side="right")
+            ttk.Button(d, text="記録をすべて削除…", command=self._delete_data).pack(side="right", padx=8)
         else:
             self._row(self.acc, "メールアドレス", lambda p: ttk.Entry(p, font=BODY_FONT, width=30, textvariable=self.v_email))
             if c.notice:
@@ -532,20 +648,65 @@ class SettingsDialog(tk.Toplevel):
         link.bind("<Button-1>", lambda e: webbrowser.open(url))
         return link
 
+    # ---- 記録の削除 ----
+    def _delete_data(self):
+        logged_in = self.app.cloud.logged_in
+        DangerConfirm(
+            self, self.app, "記録をすべて削除",
+            "選んだ場所の作業記録をすべて削除します。元に戻せません。設定・アカウント・暗号鍵は残ります。"
+            "クラウドの記録だけを消す場合、そのままだと次の同期で PC の記録がまた送られるため、クラウド同期をオフにします。",
+            "delete workmonitor alldata", "記録を削除",
+            options=[
+                ("local", "この PC の記録（logs フォルダ）", True, True),
+                ("cloud", "クラウドに同期した記録と設定" + ("" if logged_in else "（ログインしていません）"),
+                 logged_in, logged_in),
+            ],
+            on_done=self._do_delete_data)
+
+    def _do_delete_data(self, choice):
+        if not choice:
+            return
+        done_msgs = []
+        if choice.get("local"):
+            try:
+                n = core.delete_local_logs()
+            except OSError as e:
+                messagebox.showerror("記録の削除", f"この PC の記録を削除できませんでした。\n{e}", parent=self)
+                return
+            self.app.monitor.reset_today()   # 記録中の分も捨てる
+            self.app.after_data_deleted()
+            done_msgs.append(f"この PC の記録を削除しました（{n} 日分）。")
+        if not choice.get("cloud"):
+            messagebox.showinfo("記録の削除", "\n".join(done_msgs), parent=self)
+            return
+        if not choice.get("local"):
+            # PC の記録が残っているので、同期したままだとまた送られる → 同期をオフにする
+            self.app.config["cloud_sync"] = False
+            core.save_config(self.app.config)
+            self.cfg["cloud_sync"] = False
+            self.v_sync.set(False)
+            done_msgs.append("クラウド同期をオフにしました（オンにすると、PC の記録がまた送られます）。")
+
+        def done(n, err):
+            if err:
+                messagebox.showerror("記録の削除", f"クラウドの記録を削除できませんでした。\n{err}",
+                                     parent=self if self.winfo_exists() else self.app.root)
+                return
+            messagebox.showinfo("記録の削除", "\n".join([f"クラウドの記録を削除しました（{n} 日分）。"] + done_msgs),
+                                parent=self if self.winfo_exists() else self.app.root)
+            if self.winfo_exists():
+                self._render_account()
+        self.app.run_cloud(self.app.cloud.delete_all_data, done)
+
     def _delete_account(self):
-        email = self.app.cloud.email
-        if not messagebox.askyesno(
-                "アカウントの削除",
-                "アカウントを削除します。\n\nクラウドに同期した記録・暗号鍵・同意の記録がすべて削除され、元に戻せません。"
-                "\nこの PC の記録は残ります。\n\n本当に削除しますか？", icon="warning", parent=self):
-            return
-        from tkinter import simpledialog
-        typed = simpledialog.askstring("アカウントの削除", f"確認のため、メールアドレス（{email}）を入力してください。", parent=self)
-        if typed is None:
-            return
-        if typed.strip().lower() != email.lower():
-            self._acc_message("メールアドレスが一致しないため、削除しませんでした。", error=True)
-            return
+        DangerConfirm(
+            self, self.app, "アカウントを削除",
+            "アカウントを削除します。クラウドに同期した記録・暗号鍵・同意の記録がすべて削除され、元に戻せません。"
+            "この PC の記録は残ります。",
+            "delete workmonitor account", "アカウントを削除",
+            on_done=lambda choice: choice is not None and self._do_delete_account())
+
+    def _do_delete_account(self):
         self._busy(True, self.b_delete)
         self._acc_message("削除しています…")
 
@@ -1183,6 +1344,11 @@ class App:
             self.settings.nb.select(tab)
             return
         self.settings = SettingsDialog(self, tab)
+
+    def after_data_deleted(self):
+        """PC の記録を消したあと、画面の集計と連続達成日数を作り直す"""
+        self._cats_key = None
+        self.streak_base = core.goal_streak_before(self.config, self.today)
 
     def apply_config(self, cfg):
         core.save_config(cfg)

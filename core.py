@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from discord_rpc import DiscordPresence
 
 APP_NAME = "WorkMonitor"
-APP_VERSION = "1.4.0"
+APP_VERSION = "1.5.0"
 GITHUB_REPO = "kaikomziu/WorkMonitor"  # アップデート確認に使う
 WEBSITE_URL = "https://kaikomziu.github.io/WorkMonitor/"
 TERMS_URL = WEBSITE_URL + "terms.html"
@@ -354,6 +354,18 @@ def load_day_by_app(date_str):
     return by_app
 
 
+def delete_local_logs():
+    """この PC の作業記録（logs フォルダの CSV と、生成したダッシュボード）を削除する。設定は残す"""
+    n = 0
+    for path in glob.glob(os.path.join(LOG_DIR, "*.csv")):
+        os.remove(path)
+        n += 1
+    dashboard = os.path.join(DATA_DIR, "dashboard.html")
+    if os.path.exists(dashboard):
+        os.remove(dashboard)
+    return n
+
+
 def counted_seconds(config, by_app):
     """「作業に数えない」アプリを除いた合計"""
     return sum(sec for app, sec in by_app.items() if app_info(config, app)["count"])
@@ -407,6 +419,7 @@ class Monitor:
         self.presence = None
         self._presence_key = None
         self._stop = threading.Event()
+        self._reset = threading.Event()   # 記録を削除したとき、記録中の分も捨てる
         self._thread = None
 
     @property
@@ -446,6 +459,10 @@ class Monitor:
     def start(self):
         self._thread = threading.Thread(target=self.run, daemon=True)
         self._thread.start()
+
+    def reset_today(self):
+        """記録中の区間と今日の集計を捨てる（PC の記録を削除したあとに呼ぶ）"""
+        self._reset.set()
 
     def stop(self):
         self._stop.set()
@@ -487,6 +504,10 @@ class Monitor:
 
         try:
             while not self._stop.is_set():
+                if self._reset.is_set():
+                    self._reset.clear()
+                    seg = None   # 書き出さずに捨てる
+                    done_by_app = defaultdict(float)
                 config = self.config
                 threshold = config.get("idle_threshold_sec", 60)
                 now = time.time()

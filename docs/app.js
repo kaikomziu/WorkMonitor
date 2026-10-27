@@ -119,13 +119,95 @@ async function agreeToTerms() {
   }
 }
 
+// ================= 削除の確認 =================
+// 決まった文を入力 → 同意にチェック → 5秒待つ → ボタンを3回押す、で初めて true を返す。
+// 途中で入力やチェックを変えたら最初からやり直し
+const DANGER_WAIT_SEC = 5, DANGER_PRESSES = 3;
+function confirmDanger({ title, desc, phrase, action }) {
+  return new Promise(resolve => {
+    const input = $('danger-input'), agree = $('danger-agree'), ok = $('danger-ok');
+    let timer = null, left = 0, presses = DANGER_PRESSES, ready = false;
+    $('danger-title').textContent = title;
+    $('danger-desc').textContent = desc;
+    $('danger-phrase').textContent = phrase;
+    input.value = ''; agree.checked = false;
+
+    const stopTimer = () => { clearInterval(timer); timer = null; };
+    const render = () => {
+      if (!ready) { ok.disabled = true; ok.textContent = '入力と同意をしてください'; }
+      else if (left > 0) { ok.disabled = true; ok.textContent = `あと ${left} 秒お待ちください`; }
+      else { ok.disabled = false; ok.textContent = `${action}（あと ${presses} 回押す）`; }
+    };
+    const update = () => {
+      const nowReady = input.value === phrase && agree.checked;
+      if (nowReady && !ready) {          // 条件がそろった時点から5秒数える
+        ready = true; presses = DANGER_PRESSES; left = DANGER_WAIT_SEC;
+        timer = setInterval(() => { left--; render(); if (left <= 0) stopTimer(); }, 1000);
+      } else if (!nowReady && ready) {   // 崩れたら最初から
+        ready = false; presses = DANGER_PRESSES; left = 0; stopTimer();
+      }
+      render();
+    };
+    const close = result => {
+      stopTimer();
+      $('danger').classList.add('hidden');
+      input.oninput = agree.onchange = ok.onclick = $('danger-cancel').onclick = input.onpaste = input.ondrop = null;
+      document.removeEventListener('keydown', onKey);
+      resolve(result);
+    };
+    const onKey = e => { if (e.key === 'Escape') close(false); };
+
+    input.oninput = update;
+    agree.onchange = update;
+    input.onpaste = input.ondrop = e => e.preventDefault();   // 貼り付けではなく、自分で打ってもらう
+    ok.onclick = () => {
+      if (!ready || left > 0) return;
+      presses--;
+      if (presses <= 0) close(true); else render();
+    };
+    $('danger-cancel').onclick = () => close(false);
+    document.addEventListener('keydown', onKey);
+    $('danger').classList.remove('hidden');
+    render();
+    input.focus();
+  });
+}
+
+// 記録の削除（アカウントと暗号鍵は残す）
+$('delete-data').onclick = async () => {
+  if (!session) return;
+  const yes = await confirmDanger({
+    title: '記録をすべて削除',
+    desc: 'クラウドに同期した記録と設定（目標・色）をすべて削除します。元に戻せません。アカウントと暗号鍵はそのまま残ります。'
+        + ' アプリで同期がオンのままだと、次の同期で今日と昨日の記録がまた送られます。完全に消したいときは、アプリの「設定 → アカウント」から削除してください（PC の記録も一緒に消せます）。',
+    phrase: 'delete workmonitor alldata',
+    action: '記録を削除',
+  });
+  if (!yes) return;
+  const btn = $('delete-data');
+  btn.disabled = true;
+  try {
+    const { data, error } = await sb.rpc('wm_delete_all_data');
+    if (error) throw error;
+    await loadData();
+    $('sync-info').textContent = `記録を削除しました（${data || 0} 日分）。` + $('sync-info').textContent;
+  } catch (err) {
+    alert('削除できませんでした: ' + jaError(err));
+  } finally {
+    btn.disabled = false;
+  }
+};
+
 // アカウントの削除（記録・鍵・同意の記録もサーバーで一緒に消える）
 $('delete-account').onclick = async () => {
   if (!session) return;
-  const email = session.user.email;
-  const typed = prompt(`アカウントを削除します。クラウドの記録はすべて消え、元に戻せません（PC の記録は残ります）。\n\n確認のため、メールアドレス（${email}）を入力してください。`);
-  if (typed === null) return;
-  if (typed.trim().toLowerCase() !== email.toLowerCase()) { alert('メールアドレスが一致しないため、削除しませんでした。'); return; }
+  const yes = await confirmDanger({
+    title: 'アカウントを削除',
+    desc: 'アカウントを削除します。クラウドの記録・暗号鍵・同意の記録がすべて削除され、元に戻せません。PC の記録は残ります。',
+    phrase: 'delete workmonitor account',
+    action: 'アカウントを削除',
+  });
+  if (!yes) return;
   const btn = $('delete-account');
   btn.disabled = true;
   try {

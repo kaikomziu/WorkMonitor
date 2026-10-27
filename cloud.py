@@ -213,6 +213,14 @@ class Cloud:
             return True
         return False   # 確認メールのリンクを開いたあと、ログインしたときに鍵を作る
 
+    def delete_all_data(self):
+        """クラウドの記録と設定をすべて削除する（アカウントと暗号鍵は残す）→ 削除した日数"""
+        token = self._token()
+        n = _http("POST", "/rest/v1/rpc/wm_delete_all_data", {}, token=token)
+        self.session["last_sync"] = None
+        self._save()
+        return n or 0
+
     def delete_account(self):
         """アカウントを削除する（クラウドの記録・鍵・同意の記録もサーバーで一緒に消える）"""
         token = self._token()
