@@ -84,6 +84,7 @@
     <div class="dash-head">
       <h1>作業時間</h1>
       <div class="controls">
+        <div class="seg" id="group"><button data-group="app" class="on">アプリ別</button><button data-group="cat">カテゴリ別</button></div>
         <div class="seg" id="mode"><button data-mode="day">日</button><button data-mode="week">週</button><button data-mode="month">月</button></div>
         <select id="period" aria-label="期間"></select>
       </div>
@@ -200,9 +201,22 @@ function showDashboard() {
 }
 
 // ================= データ =================
-let DATA = {}, dates = [], GOAL = 0, COLORS = {}, CATS = [];
+let DATA = {}, dates = [], GOAL = 0, COLORS = {}, CATS = [], APPS = [];
 const PALETTE = ['#4f6bed','#22a06b','#e2a03f','#d9534f','#8e6bd8','#2bb3c0','#e57fb0','#7f8c8d'];
 const catColor = c => COLORS[c] || PALETTE[Math.max(0, CATS.indexOf(c)) % PALETTE.length];
+
+// ---- まとめ方（アプリ別 / カテゴリ別）。行は [アプリ名, 秒, カテゴリ] ----
+const OTHER = 'その他', OTHER_COLOR = '#8a919c', TOP_N = 7;   // グラフに出すのは上位7つ + その他
+let group = 'app';
+const GI = () => group === 'app' ? 0 : 2;
+const GN = () => group === 'app' ? 'アプリ' : 'カテゴリ';
+const groupColor = k => k === OTHER ? OTHER_COLOR
+  : group === 'app' ? PALETTE[Math.max(0, APPS.indexOf(k)) % (PALETTE.length - 1)] : catColor(k);
+document.querySelectorAll('#group button').forEach(b => b.onclick = () => {
+  group = b.dataset.group;
+  document.querySelectorAll('#group button').forEach(x => x.classList.toggle('on', x.dataset.group === group));
+  if (sel.value) render(sel.value);
+});
 const total = d => (DATA[d] || []).reduce((a, r) => a + r[1], 0);
 
 async function loadData() {
@@ -227,6 +241,10 @@ async function loadData() {
     const ct = {};
     dates.forEach(d => DATA[d].forEach(r => ct[r[2]] = (ct[r[2]] || 0) + r[1]));
     CATS = Object.keys(ct).sort((a, b) => ct[b] - ct[a]);
+    // アプリの色は全期間で多い順に固定
+    const at = {};
+    dates.forEach(d => DATA[d].forEach(r => at[r[0]] = (at[r[0]] || 0) + r[1]));
+    APPS = Object.keys(at).sort((a, b) => at[b] - at[a]);
     $('sync-info').textContent = prof && prof.last_sync_at
       ? `最後の同期: ${new Date(prof.last_sync_at).toLocaleString('ja-JP')}（アプリ ${prof.app_version || ''}）。アプリはログイン中、5分ごとに同期します。`
       : '';
@@ -292,13 +310,21 @@ function render(key) {
   const M = MODES[mode], fmt = WM.fmt, esc = WM.esc;
   const days = M.days(key), prevDays = M.days(M.prev(key));
   const rows = days.flatMap(d => DATA[d] || []);
+  const prevRows = prevDays.flatMap(d => DATA[d] || []);
   const sum = days.reduce((a, d) => a + total(d), 0);
   const prevSum = prevDays.reduce((a, d) => a + total(d), 0);
   const base = sum || 1;
   const cats = sumBy(rows, 2);
-  const prevCats = Object.fromEntries(sumBy(prevDays.flatMap(d => DATA[d] || []), 2));
+  const prevCats = Object.fromEntries(sumBy(prevRows, 2));
   const apps = sumBy(rows, 0);
+  const prevApps = Object.fromEntries(sumBy(prevRows, 0));
   const appCat = {}; rows.forEach(r => appCat[r[0]] = r[2]);
+  // グラフ用: 選んだまとめ方で集計（上位 TOP_N 以外は「その他」）
+  const groups = sumBy(rows, GI());
+  const prevGroups = Object.fromEntries(sumBy(prevRows, GI()));
+  const topKeys = groups.slice(0, TOP_N).map(x => x[0]);
+  const keyOf = r => topKeys.includes(r[GI()]) ? r[GI()] : OTHER;
+  const chartGroups = sumBy(rows.map(r => { const c = r.slice(); c[GI()] = keyOf(r); return c; }), GI());
 
   let kpis;
   if (mode === 'day') {
@@ -308,8 +334,8 @@ function render(key) {
     kpis = [
       ['この日の作業時間', fmt(sum), GOAL ? (sum >= GOAL ? `<span class="up">🎉 目標達成（${Math.round(sum / GOAL * 100)}%）</span>` : `目標の ${Math.round(sum / GOAL * 100)}%`) : `${diffHtml(sum, prevSum)} 前日比`],
       ['直近7日の平均', fmt(avg7), ''],
-      ['いちばん多いカテゴリ', cats[0] ? esc(cats[0][0]) : '-', cats[0] ? fmt(cats[0][1]) : ''],
       ['いちばん使ったアプリ', apps[0] ? esc(apps[0][0]) : '-', apps[0] ? fmt(apps[0][1]) : ''],
+      ['いちばん多いカテゴリ', cats[0] ? esc(cats[0][0]) : '-', cats[0] ? fmt(cats[0][1]) : ''],
     ];
   } else {
     const worked = days.filter(d => total(d) > 0);
@@ -317,29 +343,31 @@ function render(key) {
     kpis = [
       [`この${M.name}の合計`, fmt(sum), `${diffHtml(sum, prevSum)} ${M.prevName}（${fmt(prevSum)}）より`],
       ['1日の平均', fmt(worked.length ? sum / worked.length : 0), `作業した日 ${worked.length}日 / ${days.length}日`],
-      ['いちばん多いカテゴリ', cats[0] ? esc(cats[0][0]) : '-', cats[0] ? fmt(cats[0][1]) : ''],
+      [`いちばん多い${GN()}`, groups[0] ? esc(groups[0][0]) : '-', groups[0] ? fmt(groups[0][1]) : ''],
       GOAL ? ['目標を達成した日', `${achieved}日`, `目標 ${fmt(GOAL)} / 日`]
            : ['いちばん作業した日', worked.length ? md(worked.slice().sort((a, b) => total(b) - total(a))[0]) : '-', ''],
     ];
   }
 
+  const ratioHead = mode === 'day' ? '割合' : M.prevName + '比';
+  const appColor = a => group === 'app' ? groupColor(topKeys.includes(a) ? a : OTHER) : catColor(appCat[a]);
+  const appTable = `<div class="card scroll"><h2>アプリ別の内訳</h2>
+        <table><thead><tr><th>アプリ</th><th>カテゴリ</th><th class="num">時間</th><th class="num">${ratioHead}</th></tr></thead><tbody>
+        ${apps.slice(0, 15).map(([a, s]) => `<tr><td><span class="dot" style="background:${appColor(a)}"></span>${esc(a)}</td><td><span class="tag">${esc(appCat[a])}</span></td><td class="num">${fmt(s)}</td><td class="num">${mode === 'day' ? (s / base * 100).toFixed(1) + '%' : diffHtml(s, prevApps[a])}</td></tr>`).join('')}
+        </tbody></table></div>`;
+  const catTable = `<div class="card scroll"><h2>カテゴリ別の内訳</h2>
+        <table><thead><tr><th>カテゴリ</th><th style="width:28%"></th><th class="num">時間</th><th class="num">${ratioHead}</th></tr></thead><tbody>
+        ${cats.map(([c, s]) => `<tr><td><span class="dot" style="background:${catColor(c)}"></span>${esc(c)}</td><td><div class="bar" style="width:${s / cats[0][1] * 100}%;background:${catColor(c)}"></div></td><td class="num">${fmt(s)}</td><td class="num">${mode === 'day' ? (s / base * 100).toFixed(1) + '%' : diffHtml(s, prevCats[c])}</td></tr>`).join('')}
+        </tbody></table></div>`;
+
   $('root').innerHTML = `
     <div class="kpis">${kpis.map(([l, v, n]) => `<div class="card kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="note">${n}</div></div>`).join('')}</div>
-    <div class="card" style="margin-bottom:12px"><h2>${mode === 'day' ? '日別の作業時間（直近30日・カテゴリ別）' : `日別の作業時間（この${M.name}）`}</h2><div class="chart"><canvas id="cDaily"></canvas></div></div>
+    <div class="card" style="margin-bottom:12px"><h2>${mode === 'day' ? `日別の作業時間（直近30日・${GN()}別）` : `日別の作業時間（この${M.name}・${GN()}別）`}</h2><div class="chart"><canvas id="cDaily"></canvas></div></div>
     <div class="grid">
-      <div class="card"><h2>カテゴリ別</h2><div class="chart"><canvas id="cCat"></canvas></div></div>
-      <div class="card"><h2>${mode === 'day' ? 'アプリ別' : `カテゴリ別の推移（${M.prevName}と比べて）`}</h2><div class="chart"><canvas id="cThird"></canvas></div></div>
+      <div class="card"><h2>${GN()}別</h2><div class="chart"><canvas id="cCat"></canvas></div></div>
+      <div class="card"><h2>${mode === 'day' ? `${GN()}別の時間` : `${GN()}別の推移（${M.prevName}と比べて）`}</h2><div class="chart"><canvas id="cThird"></canvas></div></div>
     </div>
-    <div class="grid">
-      <div class="card scroll"><h2>カテゴリ別の内訳</h2>
-        <table><thead><tr><th>カテゴリ</th><th style="width:28%"></th><th class="num">時間</th><th class="num">${mode === 'day' ? '割合' : M.prevName + '比'}</th></tr></thead><tbody>
-        ${cats.map(([c, s]) => `<tr><td><span class="dot" style="background:${catColor(c)}"></span>${esc(c)}</td><td><div class="bar" style="width:${s / cats[0][1] * 100}%;background:${catColor(c)}"></div></td><td class="num">${fmt(s)}</td><td class="num">${mode === 'day' ? (s / base * 100).toFixed(1) + '%' : diffHtml(s, prevCats[c])}</td></tr>`).join('')}
-        </tbody></table></div>
-      <div class="card scroll"><h2>アプリ別の内訳</h2>
-        <table><thead><tr><th>アプリ</th><th>カテゴリ</th><th class="num">時間</th><th class="num">割合</th></tr></thead><tbody>
-        ${apps.slice(0, 15).map(([a, s]) => `<tr><td>${esc(a)}</td><td><span class="tag">${esc(appCat[a])}</span></td><td class="num">${fmt(s)}</td><td class="num">${(s / base * 100).toFixed(1)}%</td></tr>`).join('')}
-        </tbody></table></div>
-    </div>`;
+    <div class="grid">${group === 'app' ? appTable + catTable : catTable + appTable}</div>`;
 
   const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   Chart.defaults.color = css('--sub');
@@ -348,13 +376,15 @@ function render(key) {
   const legend = { display: true, position: 'bottom', labels: { boxWidth: 10, boxHeight: 10 } };
   const opt = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
 
-  // 日別（カテゴリで積み上げ + 目標ライン）
+  // 日別（アプリ / カテゴリで積み上げ + 目標ライン）
   let span;
   if (mode === 'day') { const idx = dates.indexOf(key); span = dates.slice(Math.max(0, idx - 29), idx + 1); }
   else span = days;
-  const spanCats = CATS.filter(c => span.some(d => (DATA[d] || []).some(r => r[2] === c)));
-  const catOfDay = (d, c) => (DATA[d] || []).filter(r => r[2] === c).reduce((a, r) => a + r[1], 0);
-  const ds = spanCats.map(c => ({ label: c, data: span.map(d => +(catOfDay(d, c) / 3600).toFixed(2)), backgroundColor: catColor(c), borderRadius: 3, stack: 'work' }));
+  const spanTop = sumBy(span.flatMap(d => DATA[d] || []), GI()).slice(0, TOP_N).map(x => x[0]);
+  const spanKey = r => spanTop.includes(r[GI()]) ? r[GI()] : OTHER;
+  const spanKeys = [...spanTop, ...(span.some(d => (DATA[d] || []).some(r => spanKey(r) === OTHER)) ? [OTHER] : [])];
+  const ofDay = (d, k) => (DATA[d] || []).filter(r => spanKey(r) === k).reduce((a, r) => a + r[1], 0);
+  const ds = spanKeys.map(k => ({ label: k, data: span.map(d => +(ofDay(d, k) / 3600).toFixed(2)), backgroundColor: groupColor(k), borderRadius: 3, stack: 'work' }));
   if (GOAL) ds.push({ type: 'line', label: '目標', data: span.map(() => +(GOAL / 3600).toFixed(2)), stack: 'goal',
     borderColor: css('--sub'), borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, fill: false });
   charts.push(new Chart($('cDaily'), {
@@ -362,32 +392,35 @@ function render(key) {
     data: { labels: span.map(d => mode === 'month' ? String(+d.slice(8)) : `${md(d)}(${WEEKDAY[parse(d).getDay()]})`), datasets: ds },
     options: { ...opt, scales: { x: { stacked: true }, y: { stacked: true, title: { display: true, text: '時間' } } },
       plugins: { legend, tooltip: { callbacks: {
-        label: c => c.dataset.stack === 'goal' ? `目標: ${fmt(GOAL)}` : `${c.dataset.label}: ${fmt(catOfDay(span[c.dataIndex], c.dataset.label))}`,
+        label: c => c.dataset.stack === 'goal' ? `目標: ${fmt(GOAL)}` : `${c.dataset.label}: ${fmt(ofDay(span[c.dataIndex], c.dataset.label))}`,
         footer: items => `合計 ${fmt(total(span[items[0].dataIndex]))}` } } },
       onClick: (e, els) => { if (els.length) setMode('day', span[els[0].index]); } }
   }));
 
   charts.push(new Chart($('cCat'), {
     type: 'doughnut',
-    data: { labels: cats.map(x => x[0]), datasets: [{ data: cats.map(x => x[1]), backgroundColor: cats.map(x => catColor(x[0])), borderColor: css('--card'), borderWidth: 2 }] },
+    data: { labels: chartGroups.map(x => x[0]), datasets: [{ data: chartGroups.map(x => x[1]), backgroundColor: chartGroups.map(x => groupColor(x[0])), borderColor: css('--card'), borderWidth: 2 }] },
     options: { ...opt, plugins: { legend: { ...legend, position: 'right' }, tooltip: { callbacks: { label: c => `${c.label}: ${fmt(c.raw)}` } } } }
   }));
 
   if (mode === 'day') {
-    const top = apps.slice(0, 8);
+    const top = chartGroups.slice(0, 8);
     charts.push(new Chart($('cThird'), {
       type: 'bar',
-      data: { labels: top.map(x => x[0]), datasets: [{ data: top.map(x => +(x[1] / 3600).toFixed(2)), backgroundColor: top.map(x => catColor(appCat[x[0]])), borderRadius: 3 }] },
+      data: { labels: top.map(x => x[0]), datasets: [{ data: top.map(x => +(x[1] / 3600).toFixed(2)), backgroundColor: top.map(x => groupColor(x[0])), borderRadius: 3 }] },
       options: { ...opt, indexAxis: 'y', scales: { x: { title: { display: true, text: '時間' } } },
         plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => fmt(c.raw * 3600) } } } }
     }));
   } else {
-    const names = [...new Set([...cats.map(x => x[0]), ...Object.keys(prevCats)])];
+    // 前の期間との比較（多い順に最大10件）
+    const now = k => (groups.find(x => x[0] === k) || [0, 0])[1];
+    const names = [...new Set([...groups.map(x => x[0]), ...Object.keys(prevGroups)])]
+      .sort((a, b) => (now(b) + (prevGroups[b] || 0)) - (now(a) + (prevGroups[a] || 0))).slice(0, 10);
     charts.push(new Chart($('cThird'), {
       type: 'bar',
       data: { labels: names, datasets: [
-        { label: M.prevName, data: names.map(c => +((prevCats[c] || 0) / 3600).toFixed(2)), backgroundColor: css('--line'), borderRadius: 3 },
-        { label: `この${M.name}`, data: names.map(c => +(((cats.find(x => x[0] === c) || [0, 0])[1]) / 3600).toFixed(2)), backgroundColor: names.map(catColor), borderRadius: 3 },
+        { label: M.prevName, data: names.map(k => +((prevGroups[k] || 0) / 3600).toFixed(2)), backgroundColor: css('--line'), borderRadius: 3 },
+        { label: `この${M.name}`, data: names.map(k => +(now(k) / 3600).toFixed(2)), backgroundColor: names.map(k => groupColor(k)), borderRadius: 3 },
       ] },
       options: { ...opt, indexAxis: 'y', scales: { x: { title: { display: true, text: '時間' } } },
         plugins: { legend, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw * 3600)}` } } } }

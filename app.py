@@ -209,7 +209,18 @@ class SettingsDialog(tk.Toplevel):
     # ---- アプリ別 ----
     def _tab_apps(self):
         f = self._page("アプリ別", "アプリごとに、作業に数えるか・カテゴリ・Discord に出す文言を決められます。"
-                                  "一覧から選んで、下で変更してください（ゲームや動画サイトは「作業に数える」をオフに）。")
+                                  "一覧から選んで、下で変更してください。")
+        # 作業時間に含めるアプリの決め方
+        mode = ttk.Frame(f)
+        mode.pack(fill="x", pady=(0, 8))
+        ttk.Label(mode, text="作業時間に含めるアプリ:").pack(side="left")
+        self.v_mode = tk.StringVar(value=self.cfg.get("count_mode", "all"))
+        ttk.Radiobutton(mode, text="選んだアプリだけ", value="selected", variable=self.v_mode,
+                        command=self._mode_changed).pack(side="left", padx=(12, 0))
+        ttk.Radiobutton(mode, text="「数えない」にしたアプリ以外すべて", value="all", variable=self.v_mode,
+                        command=self._mode_changed).pack(side="left", padx=(12, 0))
+        self.l_mode = ttk.Label(f, text="", wraplength=self.app.wrap, justify="left")
+        self.l_mode.pack(anchor="w", pady=(0, 8))
         cols = ("name", "category", "count", "discord")
         tf = ttk.Frame(f)
         tf.pack(fill="both", expand=True)
@@ -261,6 +272,26 @@ class SettingsDialog(tk.Toplevel):
             v.trace_add("write", lambda *a: self._store_selected())
         self._set_editor_state(False)
         self._fill_tree()
+        self._update_mode_hint()
+
+    def _mode_changed(self):
+        self.cfg["count_mode"] = self.v_mode.get()
+        selected = self._selected
+        self._fill_tree(select=selected)
+        if selected:
+            self._load_selected()
+        self._update_mode_hint()
+
+    def _update_mode_hint(self):
+        if self.cfg.get("count_mode") == "selected":
+            n = len(self.cfg.get("included_apps", []))
+            text = (f"いま {n} 個のアプリを数えています。一覧で選んで「作業に数える」をオンにしたアプリだけが作業時間になります。"
+                    if n else "まだ数えるアプリがありません。一覧から作業に使うアプリを選んで「作業に数える」をオンにしてください。")
+            color = self.app.sub_color if n else "#d9534f"
+        else:
+            text = "ゲームや動画サイトなど、数えたくないアプリは「作業に数える」をオフにしてください。"
+            color = self.app.sub_color
+        self.l_mode.configure(text=jp(text), foreground=color)
 
     def _fill_tree(self, select=None):
         self.tree.delete(*self.tree.get_children())
@@ -307,12 +338,23 @@ class SettingsDialog(tk.Toplevel):
         if self._loading or not self._selected:
             return
         key = self._selected
-        self.cfg["app_rules"][key] = {
+        rule = {
             "name": self.v_name.get().strip() or core.app_info({}, key)["name"],
             "category": self.v_cat.get().strip() or core.UNCATEGORIZED,
-            "count": bool(self.v_count.get()),
             "discord": self.v_dtext.get().strip(),
         }
+        if self.cfg.get("count_mode") == "selected":
+            # 「選んだアプリだけ」のときは、数えるアプリの一覧を変える（もう一方の方式の設定は残す）
+            included = set(self.cfg.get("included_apps", []))
+            (included.add if self.v_count.get() else included.discard)(key)
+            self.cfg["included_apps"] = sorted(included)
+            prev = self.cfg["app_rules"].get(key, {})
+            if "count" in prev:
+                rule["count"] = prev["count"]
+            self._update_mode_hint()
+        else:
+            rule["count"] = bool(self.v_count.get())
+        self.cfg["app_rules"][key] = rule
         self.tree.item(key, values=self._row_values(key))
         self.c_cat.configure(values=core.all_categories(self.cfg))
 
@@ -331,6 +373,10 @@ class SettingsDialog(tk.Toplevel):
             name += ".exe"
         key = name.lower()
         self.cfg["app_rules"].setdefault(key, {k: v for k, v in core.app_info(self.cfg, key).items()})
+        if self.cfg.get("count_mode") == "selected":
+            # わざわざ追加するのは数えたいアプリなので、そのまま数える側に入れる
+            self.cfg["included_apps"] = sorted(set(self.cfg.get("included_apps", [])) | {key})
+            self._update_mode_hint()
         self.v_add.set("")
         self._fill_tree(select=key)
 
@@ -580,6 +626,7 @@ class SettingsDialog(tk.Toplevel):
             "autostart": self.v_autostart.get(),
             "always_on_top": self.v_top.get(),
             "theme": next(k for k, v in THEMES.items() if v == self.v_theme.get()),
+            "count_mode": self.v_mode.get(),
             "cloud_sync": self.v_sync.get(),
             "discord_enabled": self.v_discord.get(),
             "discord_client_id": client,
@@ -733,9 +780,9 @@ class App:
         self.pb_goal = ttk.Progressbar(self.f_goal, maximum=100)
         self.pb_goal.pack(fill="x", pady=(6, 0))
 
-        # 今日のカテゴリ別
+        # 今日のアプリ別
         ttk.Separator(f).pack(fill="x", pady=12)
-        ttk.Label(f, text="今日のカテゴリ別", foreground=self.sub_color).pack(anchor="w")
+        ttk.Label(f, text="今日のアプリ別", foreground=self.sub_color).pack(anchor="w")
         self.c_cats = tk.Canvas(f, width=340, height=10, highlightthickness=0, bg=self.bg)
         self.c_cats.pack(fill="x", pady=(6, 0))
         self._cats_key = None
@@ -765,13 +812,20 @@ class App:
         m = self.monitor
         info = core.app_info(self.config, m.app) if m.app else None
         if m.state == "working":
-            return (app_icon.GREEN, "作業中", f"{info['name']}（{info['category']}）", f"{info['name']} · {info['category']}")
+            app_sec = m.today_by_name().get(info["name"], 0)
+            return (app_icon.GREEN, "作業中", f"{info['name']}（{info['category']}）・今日 {fmt_hm(app_sec)}",
+                    f"{info['name']} · 今日 {fmt_hm(app_sec)}")
         if m.state == "excluded":
-            return (EXCLUDED_COLOR, "数えないアプリを使用中", f"{info['name']} は作業時間に入りません", f"{info['name']}（対象外）")
+            if self.config.get("count_mode") == "selected" and not self.config.get("included_apps"):
+                sub = "数えるアプリが未設定です（設定 → アプリ別 で選んでください）"
+            else:
+                sub = f"{info['name']} は作業時間に入りません"
+            return (EXCLUDED_COLOR, "数えないアプリを使用中", sub, f"{info['name']}（対象外）")
         return (app_icon.GRAY, "休憩中", "キーボードやマウスを操作すると再開します", "休憩中")
 
     def _draw_categories(self):
-        cats = sorted(self.monitor.today_by_category().items(), key=lambda x: -x[1])
+        """今日のアプリ別の時間（上位5つ）"""
+        cats = sorted(self.monitor.today_by_name().items(), key=lambda x: -x[1])
         key = tuple((c, int(s // 60)) for c, s in cats)
         if key == self._cats_key:
             return
@@ -784,8 +838,8 @@ class App:
             c.configure(height=row)
             c.create_text(0, row // 2, text="まだ記録がありません", anchor="w", fill=self.sub_color, font=BODY_FONT)
             return
-        cats = cats[:5]
-        colors = core.category_colors(self.config)
+        # 長いアプリ名は省略して、時間の列がつぶれないようにする
+        cats = [(n if len(n) <= 16 else n[:15] + "…", s) for n, s in cats[:5]]
         width = int(c.winfo_width()) if c.winfo_width() > 10 else int(340 * dpi)
         # 列の幅は実際の文字幅から決める
         body = tkfont.nametofont(BODY_FONT, self.root)
@@ -798,7 +852,7 @@ class App:
         c.configure(height=row * len(cats))
         for i, (cat, sec) in enumerate(cats):
             y = i * row + row // 2
-            color = colors.get(cat, core.UNCATEGORIZED_COLOR)
+            color = core.CATEGORY_PALETTE[i % len(core.CATEGORY_PALETTE)]   # 多い順に色を割り当てる
             c.create_oval(0, y - 4 * dpi, 8 * dpi, y + 4 * dpi, fill=color, outline="")
             c.create_text(14 * dpi, y, text=cat, anchor="w", fill=fg, font=BODY_FONT)
             x0 = label_w

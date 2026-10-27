@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from discord_rpc import DiscordPresence
 
 APP_NAME = "WorkMonitor"
-APP_VERSION = "1.2.1"
+APP_VERSION = "1.3.0"
 GITHUB_REPO = "kaikomziu/WorkMonitor"  # アップデート確認に使う
 WEBSITE_URL = "https://kaikomziu.github.io/WorkMonitor/"
 
@@ -54,6 +54,11 @@ DEFAULT_CONFIG = {
         "x": None,
         "y": None,
     },
+    # 作業時間に含めるアプリの決め方
+    #   "all"      … 「数えない」にしたアプリ以外はすべて数える
+    #   "selected" … included_apps に入れたアプリだけを数える
+    "count_mode": "all",
+    "included_apps": [],          # exe 名（小文字）
     # キーは exe 名（小文字）。値は name / category / count / discord
     "app_rules": {},
 }
@@ -211,6 +216,8 @@ def app_info(config, app):
         (name, category), count = KNOWN_APPS.get(key, (os.path.splitext(app)[0], UNCATEGORIZED)), True
     info = {"name": name, "category": category, "count": count, "discord": ""}
     info.update(config.get("app_rules", {}).get(key, {}))
+    if config.get("count_mode") == "selected":
+        info["count"] = key in config.get("included_apps", [])
     return info
 
 
@@ -409,6 +416,15 @@ class Monitor:
         if not effective_client_id(self.config):
             return "未設定（設定 → Discord で Application ID を入力）"
         return self.presence.status if self.presence else "準備中"
+
+    def today_by_name(self):
+        """今日のアプリ別秒数（表示名でまとめる。作業に数えるアプリのみ）"""
+        result = defaultdict(float)
+        for app, sec in list(self.today_by_app.items()):
+            info = app_info(self.config, app)
+            if info["count"]:
+                result[info["name"]] += sec
+        return dict(result)
 
     def today_by_category(self):
         """今日のカテゴリ別秒数（作業に数えるアプリのみ）"""
