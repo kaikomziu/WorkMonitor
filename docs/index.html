@@ -159,6 +159,8 @@
     <details><summary>サーバーに送ったデータは安全ですか？</summary>
       <p>送る前に PC の中で <b>AES-256-GCM</b> で暗号化する「エンドツーエンド暗号化」です。暗号の鍵はパスワードから PBKDF2（60万回）で作り、サーバーには暗号文しか置きません。サーバーの管理者でも中身（アプリ名・時間など）は読めません。このサイトで見るときも、復号はあなたのブラウザの中だけで行います。通信自体も TLS（HTTPS）で暗号化しています。</p>
       <p>そのため、パスワードを忘れて再設定すると、クラウドの記録は読めなくなり作り直しになります（アプリが PC の記録から最大120日分を送り直します）。</p></details>
+    <details><summary>アカウントを削除できますか？</summary>
+      <p>できます。このサイトの「ログイン」で記録を表示した画面の下、またはアプリの「設定 → アカウント」から、いつでも削除できます。クラウドの記録・暗号鍵もすぐに削除されます（PC の記録は残ります）。詳しくは<a href="privacy.html">プライバシーポリシー</a>をご覧ください。</p></details>
     <details><summary>無料ですか？</summary>
       <p>無料です。ソースコードは GitHub で公開しています（MIT ライセンス）。</p></details>
     <details><summary>アップデートはどうすればいいですか？</summary>
@@ -170,8 +172,8 @@
 
 <footer>
   <div class="wrap">
-    <span>WorkMonitor ・ MIT License</span>
-    <span><a href="https://github.com/kaikomziu/WorkMonitor">GitHub</a> ・ <a href="https://github.com/kaikomziu/WorkMonitor/releases">リリース一覧</a></span>
+    <span>WorkMonitor ・ 運営：かるわか ・ MIT License</span>
+    <span><a href="terms.html">利用規約</a> ・ <a href="privacy.html">プライバシーポリシー</a> ・ <a href="https://github.com/kaikomziu/WorkMonitor">GitHub</a> ・ <a href="https://github.com/kaikomziu/WorkMonitor/releases">リリース一覧</a></span>
   </div>
 </footer>
 

@@ -125,6 +125,17 @@ python monitor.py dashboard  :: ダッシュボードを開く
 | `installer.iss` | インストーラー（Inno Setup） |
 | `docs/` | ウェブサイト（GitHub Pages） |
 
+## 利用規約・プライバシーポリシー
+
+アカウントとクラウド同期の利用には、[利用規約](https://kaikomziu.github.io/WorkMonitor/terms.html)と
+[プライバシーポリシー](https://kaikomziu.github.io/WorkMonitor/privacy.html)への同意が必要です（登録時にチェック）。
+同意した版と日時はサーバーに記録されます。版は `core.TERMS_VERSION` と `docs/common.js` の `termsVersion` で管理し、
+変えるとログイン時に改めて同意をお願いします。
+
+アカウントは、ウェブサイトの「記録を見る」ページまたはアプリの「設定 → アカウント」からいつでも削除できます。
+
+運営：かるわか ／ お問い合わせ：[GitHub Issues](https://github.com/kaikomziu/WorkMonitor/issues)
+
 ## ライセンス
 
 [MIT License](LICENSE)

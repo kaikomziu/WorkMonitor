@@ -172,10 +172,23 @@ class Cloud:
     def last_sync(self):
         return (self.session or {}).get("last_sync")
 
-    def sign_in(self, email, password):
+    def sign_in(self, email, password, agreed=False):
+        """ログインする。今の版の利用規約にまだ同意していないアカウントは agreed=True が必要"""
         res = _http("POST", "/auth/v1/token?grant_type=password", {"email": email, "password": password})
         self.session = None
         self._set_tokens(res)
+        meta = (res.get("user") or {}).get("user_metadata") or {}
+        if meta.get("terms_version") != core.TERMS_VERSION:
+            if not agreed:
+                try:
+                    _http("POST", "/auth/v1/logout", {}, token=res["access_token"])
+                except CloudError:
+                    pass
+                self.session = None
+                raise CloudError("利用規約とプライバシーポリシーへの同意が必要です。内容を確認し、"
+                                 "「同意する」にチェックを入れてもう一度ログインしてください。")
+            # 版をユーザー情報に入れると、サーバーが日時と一緒に同意を記録する
+            _http("PUT", "/auth/v1/user", {"data": {"terms_version": core.TERMS_VERSION}}, token=res["access_token"])
         try:
             self._open_vault(password)
         except Exception:
@@ -189,7 +202,9 @@ class Cloud:
         if len(password) < MIN_PASSWORD_LENGTH:
             raise CloudError(f"パスワードは{MIN_PASSWORD_LENGTH}文字以上にしてください。")
         q = urllib.parse.urlencode({"redirect_to": core.WEBSITE_URL + "app.html"})
-        res = _http("POST", f"/auth/v1/signup?{q}", {"email": email, "password": password})
+        # 同意した規約の版を一緒に送る（サーバーが日時と一緒に記録する）
+        res = _http("POST", f"/auth/v1/signup?{q}", {"email": email, "password": password,
+                                                    "data": {"terms_version": core.TERMS_VERSION}})
         if res and res.get("access_token"):
             self.session = None
             self._set_tokens(res)
@@ -197,6 +212,12 @@ class Cloud:
             self._save()
             return True
         return False   # 確認メールのリンクを開いたあと、ログインしたときに鍵を作る
+
+    def delete_account(self):
+        """アカウントを削除する（クラウドの記録・鍵・同意の記録もサーバーで一緒に消える）"""
+        token = self._token()
+        _http("POST", "/rest/v1/rpc/wm_delete_account", {}, token=token)
+        self._clear("アカウントを削除しました。")
 
     def sign_out(self):
         if self.session:

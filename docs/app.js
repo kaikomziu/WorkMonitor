@@ -6,10 +6,11 @@ const pageUrl = location.origin + location.pathname;
 const MIN_PASSWORD = 8;
 
 // ================= ログイン・登録・鍵 =================
-let authMode = 'login';   // login / signup / forgot / recovery / unlock
+let authMode = 'login';   // login / signup / forgot / recovery / unlock / consent
 let session = null;
 let dek = null;            // データ鍵（取り出し不可の CryptoKey）
 let pendingPassword = null;
+let afterSignOutMessage = null;
 
 const AUTH_TEXT = {
   login:    { title: 'ログイン', submit: 'ログイン', desc: 'WorkMonitor アプリと同じアカウントでログインすると、同期した記録を見られます。記録は暗号化されていて、パスワードからこのブラウザの中でだけ鍵を作って読みます。' },
@@ -17,7 +18,10 @@ const AUTH_TEXT = {
   forgot:   { title: 'パスワードの再設定', submit: '再設定メールを送る', desc: '登録したメールアドレスに、パスワードを再設定するためのリンクを送ります。記録は古いパスワードで暗号化されているため、再設定するとクラウドの記録は作り直しになります（アプリの次の同期で、PC の記録から最大120日分が送り直されます）。' },
   recovery: { title: '新しいパスワード', submit: 'パスワードを変更', desc: '新しいパスワードを入力してください（8文字以上）。暗号鍵も新しいパスワードで作り直します。' },
   unlock:   { title: '記録の暗号を解除', submit: '解除して表示', desc: '記録は暗号化されています。このブラウザで見るには、パスワードを入力してください（パスワードはサーバーに送らず、この中で鍵を作るのに使います）。' },
+  consent:  { title: '利用規約・プライバシーポリシー', submit: '同意して続ける', desc: '続けるには、利用規約とプライバシーポリシーをお読みのうえ、同意してください。' },
 };
+// 同意した版（サーバー側で日時と一緒に記録される）
+const consented = () => !!session && (session.user.user_metadata || {}).terms_version === WM.termsVersion;
 const ERRORS = {
   'invalid login credentials': 'メールアドレスかパスワードが違います。',
   'email not confirmed': 'メールアドレスの確認が済んでいません。届いた確認メールのリンクを開いてください。',
@@ -42,9 +46,11 @@ function setAuthMode(m) {
   $('auth-submit').textContent = t.submit;
   $('auth-tabs').classList.toggle('hidden', !(m === 'login' || m === 'signup'));
   document.querySelectorAll('#auth-tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === m));
-  $('f-email').classList.toggle('hidden', m === 'recovery' || m === 'unlock');
-  $('f-password').classList.toggle('hidden', m === 'forgot');
+  $('f-email').classList.toggle('hidden', m === 'recovery' || m === 'unlock' || m === 'consent');
+  $('f-password').classList.toggle('hidden', m === 'forgot' || m === 'consent');
   $('f-remember').classList.toggle('hidden', !(m === 'login' || m === 'unlock'));
+  $('f-agree').classList.toggle('hidden', !(m === 'signup' || m === 'consent'));
+  $('agree').checked = false;
   $('password').autocomplete = (m === 'login' || m === 'unlock') ? 'current-password' : 'new-password';
   $('password').value = '';
   $('auth-alt').innerHTML = m === 'login' ? '<a href="#forgot">パスワードを忘れた場合</a>'
@@ -57,6 +63,9 @@ window.addEventListener('hashchange', () => { if (!session) setAuthMode(location
 $('auth-form').onsubmit = async (e) => {
   e.preventDefault();
   const email = $('email').value.trim(), password = $('password').value;
+  if ((authMode === 'signup' || authMode === 'consent') && !$('agree').checked)
+    return msg('利用規約とプライバシーポリシーへの同意が必要です。', 'error');
+  if (authMode === 'consent') return agreeToTerms();
   if (authMode !== 'forgot' && !password) return msg('パスワードを入力してください。', 'error');
   if ((authMode === 'signup' || authMode === 'recovery') && password.length < MIN_PASSWORD)
     return msg(`パスワードは${MIN_PASSWORD}文字以上にしてください。`, 'error');
@@ -71,7 +80,8 @@ $('auth-form').onsubmit = async (e) => {
       await unlock(password, { allowReset: false });
       showDashboard();
     } else if (authMode === 'signup') {
-      const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: pageUrl } });
+      const { data, error } = await sb.auth.signUp({ email, password,
+        options: { emailRedirectTo: pageUrl, data: { terms_version: WM.termsVersion } } });
       if (error) throw error;
       if (!data.session) msg(`${email} に確認メールを送りました。メールのリンクを開くと登録が完了します。`, 'ok');
     } else if (authMode === 'forgot') {
@@ -93,6 +103,45 @@ $('auth-form').onsubmit = async (e) => {
   }
 };
 
+// 同意を記録する（ユーザー情報に版を入れると、サーバーが日時と一緒に wm_consents に記録する）
+async function agreeToTerms() {
+  $('auth-submit').disabled = true;
+  try {
+    const { data, error } = await sb.auth.updateUser({ data: { terms_version: WM.termsVersion } });
+    if (error) throw error;
+    session.user = data.user;
+    authMode = 'login';
+    showDashboard();   // USER_UPDATED でも呼ばれるが、二重に動かないようにしてある
+  } catch (err) {
+    msg(jaError(err), 'error');
+  } finally {
+    $('auth-submit').disabled = false;
+  }
+}
+
+// アカウントの削除（記録・鍵・同意の記録もサーバーで一緒に消える）
+$('delete-account').onclick = async () => {
+  if (!session) return;
+  const email = session.user.email;
+  const typed = prompt(`アカウントを削除します。クラウドの記録はすべて消え、元に戻せません（PC の記録は残ります）。\n\n確認のため、メールアドレス（${email}）を入力してください。`);
+  if (typed === null) return;
+  if (typed.trim().toLowerCase() !== email.toLowerCase()) { alert('メールアドレスが一致しないため、削除しませんでした。'); return; }
+  const btn = $('delete-account');
+  btn.disabled = true;
+  try {
+    const { error } = await sb.rpc('wm_delete_account');
+    if (error) throw error;
+    await E2EE.deleteKey(session.user.id);
+    dek = null;
+    afterSignOutMessage = 'アカウントを削除しました。ご利用ありがとうございました。';
+    await sb.auth.signOut({ scope: 'local' });   // サーバー側のセッションはアカウントと一緒に消えている
+  } catch (err) {
+    alert('削除できませんでした: ' + jaError(err));
+  } finally {
+    btn.disabled = false;
+  }
+};
+
 $('logout').onclick = async () => {
   if (session) await E2EE.deleteKey(session.user.id);   // この端末に記憶した鍵も消す
   dek = null;
@@ -103,7 +152,12 @@ sb.auth.onAuthStateChange((event, s) => {
   session = s;
   if (event === 'PASSWORD_RECOVERY') { showAuth('recovery'); return; }
   if (authMode === 'recovery' && s) return;   // 新しいパスワードの入力中はそのまま
-  if (!s) { dek = null; loadedFor = null; showAuth(location.hash === '#forgot' ? 'forgot' : 'login'); return; }
+  if (!s) {
+    dek = null; loadedFor = null;
+    showAuth(location.hash === '#forgot' ? 'forgot' : 'login');
+    if (afterSignOutMessage) { msg(afterSignOutMessage, 'ok'); afterSignOutMessage = null; }
+    return;
+  }
   // onAuthStateChange の中で待つと supabase-js が詰まるので、少し後で続ける
   setTimeout(() => showDashboard(), 0);
 });
@@ -111,7 +165,7 @@ sb.auth.onAuthStateChange((event, s) => {
 function showAuth(mode) {
   $('dash').classList.add('hidden');
   $('auth').classList.remove('hidden');
-  const loggedIn = !!session && mode === 'unlock';
+  const loggedIn = !!session && (mode === 'unlock' || mode === 'consent');
   $('logout').classList.toggle('hidden', !loggedIn);
   $('user-email').classList.toggle('hidden', !loggedIn);
   if (loggedIn) $('user-email').textContent = session.user.email;
@@ -166,9 +220,17 @@ async function unlock(password, { allowReset }) {
 }
 
 let loadedFor = null;
-async function showDashboard() {
+let showing = null;
+// ログイン状態の変化とボタン操作の両方から呼ばれるので、実行中なら同じ処理を待つ
+function showDashboard() {
+  if (!showing) showing = openDashboard().finally(() => { showing = null; });
+  return showing;
+}
+async function openDashboard() {
   if (!session) return;
   const uid = session.user.id;
+  // まだ今の版の利用規約に同意していなければ、先に同意をお願いする（パスワードは鍵作りのために残しておく）
+  if (!consented()) { showAuth('consent'); return; }
   try {
     if (!dek && pendingPassword) {
       const pw = pendingPassword;

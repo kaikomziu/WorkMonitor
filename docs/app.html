@@ -27,6 +27,11 @@
   .auth .alt { margin-top: 14px; font-size: 14px; text-align: center; }
   .hidden { display: none !important; }
   .check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--sub); margin: 4px 0 8px; }
+  .account-box { margin-top: 24px; display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .account-box > div { flex: 1 1 280px; }
+  .btn.danger { color: var(--down); border-color: color-mix(in srgb, var(--down) 45%, var(--line)); }
+  .btn.danger:hover { background: color-mix(in srgb, var(--down) 10%, var(--card)); }
+  .legal-links { margin-top: 14px; font-size: 13px; text-align: center; color: var(--sub); }
 
   .dash { padding: 24px 0 0; }
   .dash-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
@@ -83,10 +88,12 @@
       <label class="field" id="f-email"><span>メールアドレス</span><input type="email" id="email" autocomplete="email" required></label>
       <label class="field" id="f-password"><span>パスワード</span><input type="password" id="password" autocomplete="current-password"></label>
       <label class="check" id="f-remember"><input type="checkbox" id="remember" checked> この端末で暗号鍵を記憶する（共用の PC ではオフに）</label>
+      <label class="check" id="f-agree"><input type="checkbox" id="agree"> <span><a href="terms.html" target="_blank" rel="noopener">利用規約</a>と<a href="privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>に同意する</span></label>
       <button class="btn primary big" type="submit" id="auth-submit">ログイン</button>
     </form>
     <div class="msg" id="auth-msg" role="status"></div>
     <div class="alt" id="auth-alt"><a href="#forgot" id="to-forgot">パスワードを忘れた場合</a></div>
+    <div class="legal-links"><a href="terms.html" target="_blank" rel="noopener">利用規約</a> ・ <a href="privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a></div>
   </div>
 
   <!-- ダッシュボード -->
@@ -101,6 +108,13 @@
     </div>
     <div id="root"><div class="card empty sub">読み込んでいます…</div></div>
     <p class="sub small" id="sync-info" style="margin-top:12px"></p>
+    <div class="card account-box">
+      <div>
+        <b>アカウント</b>
+        <div class="sub small">アカウントを削除すると、クラウドの記録・暗号鍵・同意の記録がすべて削除され、元に戻せません（PC の記録は残ります）。</div>
+      </div>
+      <button class="btn danger" id="delete-account">アカウントを削除</button>
+    </div>
   </div>
 </main>
 

@@ -55,6 +55,13 @@ WorkMonitor - 作業時間を記録するツール（Windows 10/11）
 ・Discord 表示がオンのとき：作業中／休憩中と時間を Discord に表示
 ・アップデートの確認がオンのとき：1日に1回 GitHub に最新版の番号を問い合わせ
 
+■ 利用規約・プライバシーポリシー
+アカウントを使うには、利用規約とプライバシーポリシーへの同意が必要です。
+・利用規約: https://kaikomziu.github.io/WorkMonitor/terms.html
+・プライバシーポリシー: https://kaikomziu.github.io/WorkMonitor/privacy.html
+アカウントは「設定 → アカウント」またはウェブサイトから、いつでも削除できます。
+運営：かるわか ／ お問い合わせ：https://github.com/kaikomziu/WorkMonitor/issues
+
 ■ アンインストール
 ・インストーラー版：Windows の「設定 → アプリ」から WorkMonitor をアンインストール
 ・ZIP 版：設定で「自動で起動する」をオフにして保存 → タスクトレイから終了 → WorkMonitor.exe を削除

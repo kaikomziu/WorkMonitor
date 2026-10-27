@@ -4,6 +4,8 @@ const WM = {
   // 公開用のキー（ブラウザに置いてよい種類。データは行レベルのアクセス制限で守られる）
   supabaseKey: 'sb_publishable_9v6XNPJ_Tdo4fcwejezQiA_LjUBYohT',
   repo: 'kaikomziu/WorkMonitor',
+  // 利用規約・プライバシーポリシーの版（変えると、ログイン時にもう一度同意をお願いする）。アプリの core.TERMS_VERSION と同じ値
+  termsVersion: '2026-10-27',
   downloads: {
     installer: 'https://github.com/kaikomziu/WorkMonitor/releases/latest/download/WorkMonitor-Setup.exe',
     zip: 'https://github.com/kaikomziu/WorkMonitor/releases/latest/download/WorkMonitor.zip',

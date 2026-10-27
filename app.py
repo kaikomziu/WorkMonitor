@@ -471,6 +471,7 @@ class SettingsDialog(tk.Toplevel):
         self.v_sync = tk.BooleanVar(value=self.cfg["cloud_sync"])
         self.v_email = tk.StringVar(value=self.app.cloud.email)
         self.v_password = tk.StringVar()
+        self.v_agree = tk.BooleanVar(value=False)
         self.acc = ttk.Frame(f)
         self.acc.pack(fill="both", expand=True)
         self.l_acc_msg = ttk.Label(f, text="", wraplength=self.app.wrap, justify="left")
@@ -493,6 +494,14 @@ class SettingsDialog(tk.Toplevel):
             ttk.Button(b, text="ウェブサイトで見る", command=lambda: webbrowser.open(core.WEBSITE_URL + "app.html")) \
                 .pack(side="left", padx=8)
             ttk.Button(b, text="ログアウト", command=self._sign_out).pack(side="right")
+            ttk.Separator(self.acc).pack(fill="x", pady=12)
+            d = ttk.Frame(self.acc)
+            d.pack(fill="x")
+            self._link(d, "利用規約", core.TERMS_URL).pack(side="left")
+            ttk.Label(d, text=" ・ ").pack(side="left")
+            self._link(d, "プライバシーポリシー", core.PRIVACY_URL).pack(side="left")
+            self.b_delete = ttk.Button(d, text="アカウントを削除", command=self._delete_account)
+            self.b_delete.pack(side="right")
         else:
             self._row(self.acc, "メールアドレス", lambda p: ttk.Entry(p, font=BODY_FONT, width=30, textvariable=self.v_email))
             if c.notice:
@@ -500,6 +509,14 @@ class SettingsDialog(tk.Toplevel):
                     .pack(anchor="w", pady=(0, 6))
             self._row(self.acc, f"パスワード（登録は{cloud.MIN_PASSWORD_LENGTH}文字以上）",
                       lambda p: ttk.Entry(p, font=BODY_FONT, width=30, textvariable=self.v_password, show="●"))
+            # 利用規約・プライバシーポリシーへの同意（登録時は必須。ログイン時も未同意の版があれば必要）
+            agree = ttk.Frame(self.acc)
+            agree.pack(fill="x", pady=(8, 0))
+            ttk.Checkbutton(agree, variable=self.v_agree).pack(side="left")
+            self._link(agree, "利用規約", core.TERMS_URL).pack(side="left")
+            ttk.Label(agree, text="と").pack(side="left")
+            self._link(agree, "プライバシーポリシー", core.PRIVACY_URL).pack(side="left")
+            ttk.Label(agree, text="に同意する").pack(side="left")
             b = ttk.Frame(self.acc)
             b.pack(fill="x", pady=(10, 0))
             self.b_login = ttk.Button(b, text="ログイン", style="Accent.TButton", command=self._sign_in)
@@ -509,6 +526,39 @@ class SettingsDialog(tk.Toplevel):
             link = ttk.Label(b, text="パスワードを忘れた場合", foreground="#4f6bed", cursor="hand2")
             link.pack(side="right")
             link.bind("<Button-1>", lambda e: webbrowser.open(core.WEBSITE_URL + "app.html#forgot"))
+
+    def _link(self, parent, text, url):
+        link = ttk.Label(parent, text=text, foreground="#4f6bed", cursor="hand2")
+        link.bind("<Button-1>", lambda e: webbrowser.open(url))
+        return link
+
+    def _delete_account(self):
+        email = self.app.cloud.email
+        if not messagebox.askyesno(
+                "アカウントの削除",
+                "アカウントを削除します。\n\nクラウドに同期した記録・暗号鍵・同意の記録がすべて削除され、元に戻せません。"
+                "\nこの PC の記録は残ります。\n\n本当に削除しますか？", icon="warning", parent=self):
+            return
+        from tkinter import simpledialog
+        typed = simpledialog.askstring("アカウントの削除", f"確認のため、メールアドレス（{email}）を入力してください。", parent=self)
+        if typed is None:
+            return
+        if typed.strip().lower() != email.lower():
+            self._acc_message("メールアドレスが一致しないため、削除しませんでした。", error=True)
+            return
+        self._busy(True, self.b_delete)
+        self._acc_message("削除しています…")
+
+        def done(_r, err):
+            if not self.winfo_exists():
+                return
+            if err:
+                self._busy(False, self.b_delete)
+                self._acc_message(err, error=True)
+                return
+            self._render_account()
+            self._acc_message("アカウントを削除しました。ご利用ありがとうございました。この PC の記録はそのまま使えます。")
+        self.app.run_cloud(self.app.cloud.delete_account, done)
 
     def _acc_message(self, text, error=False):
         self.l_acc_msg.configure(text=jp(text), foreground="#d9534f" if error else self.app.sub_color)
@@ -546,7 +596,8 @@ class SettingsDialog(tk.Toplevel):
             else:
                 self._acc_message("ログインしました。これまでの記録（最大120日分）を暗号化して同期しています…")
             self.app.sync_now(full=True, done=self._sync_done)
-        self.app.run_cloud(lambda: self.app.cloud.sign_in(*cred), done)
+        agreed = self.v_agree.get()
+        self.app.run_cloud(lambda: self.app.cloud.sign_in(*cred, agreed=agreed), done)
 
     def _sign_up(self):
         cred = self._credentials()
@@ -555,6 +606,9 @@ class SettingsDialog(tk.Toplevel):
         if len(cred[1]) < cloud.MIN_PASSWORD_LENGTH:
             self._acc_message(f"パスワードは{cloud.MIN_PASSWORD_LENGTH}文字以上にしてください（記録の暗号化の鍵にも使います）。",
                               error=True)
+            return
+        if not self.v_agree.get():
+            self._acc_message("登録するには、利用規約とプライバシーポリシーへの同意が必要です。", error=True)
             return
         self._busy(True, self.b_login, self.b_signup)
         self._acc_message("登録しています…")

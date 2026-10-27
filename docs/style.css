@@ -68,5 +68,20 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1p
 .msg.error { color: var(--down); }
 .msg.ok { color: var(--up); }
 
+/* 利用規約・プライバシーポリシー */
+.legal { max-width: 780px; margin: 0 auto; padding: 40px 0 0; }
+.legal h1 { font-size: 28px; margin: 0 0 6px; }
+.legal .meta { color: var(--sub); font-size: 14px; margin-bottom: 28px; }
+.legal h2 { font-size: 19px; margin: 32px 0 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+.legal h3 { font-size: 16px; margin: 18px 0 6px; }
+.legal p, .legal li { font-size: 15px; }
+.legal ol, .legal ul { padding-left: 1.4em; }
+.legal li { margin: 4px 0; }
+.legal table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 8px 0; }
+.legal th, .legal td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+.legal th { background: var(--card); font-weight: 600; }
+.legal .note { background: var(--soft); border-radius: 10px; padding: 12px 14px; font-size: 14px; }
+.legal .table-wrap { overflow-x: auto; }
+
 footer { border-top: 1px solid var(--line); margin-top: 64px; padding: 24px 0 40px; color: var(--sub); font-size: 14px; }
 footer .wrap { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; }
