@@ -464,7 +464,10 @@ class SettingsDialog(tk.Toplevel):
     # ---- アカウント ----
     def _tab_account(self):
         f = self._page("アカウント", "ログインすると記録がクラウドに同期され、ウェブサイトからも見られます（別の PC からも）。"
-                                   "送るのは日ごと・アプリごとの合計時間と目標だけで、ウィンドウのタイトルは送りません。")
+                                   "送るのは日ごと・アプリごとの合計時間と目標だけで、ウィンドウのタイトルは送りません。"
+                                   "送る前にこの PC 上で暗号化（AES-256-GCM）するので、サーバーには暗号文しか残りません。"
+                                   "鍵はパスワードから作るため、パスワードを再設定するとクラウドの記録は作り直しになります"
+                                   "（この PC の記録から最大120日分を送り直します）。")
         self.v_sync = tk.BooleanVar(value=self.cfg["cloud_sync"])
         self.v_email = tk.StringVar(value=self.app.cloud.email)
         self.v_password = tk.StringVar()
@@ -492,7 +495,10 @@ class SettingsDialog(tk.Toplevel):
             ttk.Button(b, text="ログアウト", command=self._sign_out).pack(side="right")
         else:
             self._row(self.acc, "メールアドレス", lambda p: ttk.Entry(p, font=BODY_FONT, width=30, textvariable=self.v_email))
-            self._row(self.acc, "パスワード（6文字以上）",
+            if c.notice:
+                ttk.Label(self.acc, text=jp(c.notice), foreground=EXCLUDED_COLOR, wraplength=self.app.wrap) \
+                    .pack(anchor="w", pady=(0, 6))
+            self._row(self.acc, f"パスワード（登録は{cloud.MIN_PASSWORD_LENGTH}文字以上）",
                       lambda p: ttk.Entry(p, font=BODY_FONT, width=30, textvariable=self.v_password, show="●"))
             b = ttk.Frame(self.acc)
             b.pack(fill="x", pady=(10, 0))
@@ -535,7 +541,10 @@ class SettingsDialog(tk.Toplevel):
                 return
             self.v_password.set("")
             self._render_account()
-            self._acc_message("ログインしました。これまでの記録（最大120日分）を同期しています…")
+            if (self.app.cloud.session or {}).get("vault_reset"):
+                self._acc_message("パスワードが変わっていたため暗号鍵を作り直しました。この PC の記録（最大120日分）を暗号化して送り直しています…")
+            else:
+                self._acc_message("ログインしました。これまでの記録（最大120日分）を暗号化して同期しています…")
             self.app.sync_now(full=True, done=self._sync_done)
         self.app.run_cloud(lambda: self.app.cloud.sign_in(*cred), done)
 
@@ -543,8 +552,9 @@ class SettingsDialog(tk.Toplevel):
         cred = self._credentials()
         if not cred:
             return
-        if len(cred[1]) < 6:
-            self._acc_message("パスワードは6文字以上にしてください。", error=True)
+        if len(cred[1]) < cloud.MIN_PASSWORD_LENGTH:
+            self._acc_message(f"パスワードは{cloud.MIN_PASSWORD_LENGTH}文字以上にしてください（記録の暗号化の鍵にも使います）。",
+                              error=True)
             return
         self._busy(True, self.b_login, self.b_signup)
         self._acc_message("登録しています…")
@@ -1040,7 +1050,7 @@ class App:
     def sync_text(self):
         c = self.cloud
         if not c.logged_in:
-            return "ログインしていません（クリックで設定）"
+            return f"⚠ {c.notice}" if c.notice else "ログインしていません（クリックで設定）"
         if self.sync_error:
             return f"⚠ {self.sync_error}"
         if not self.config.get("cloud_sync", True):

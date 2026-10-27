@@ -2,11 +2,15 @@
 
 import json
 import re
+import ssl
 import urllib.request
 
 import core
 
 API_URL = f"https://api.github.com/repos/{core.GITHUB_REPO}/releases/latest"
+# TLS 1.2 以上・証明書の検証あり
+TLS_CONTEXT = ssl.create_default_context()
+TLS_CONTEXT.minimum_version = ssl.TLSVersion.TLSv1_2
 
 
 def parse_version(text):
@@ -24,7 +28,7 @@ def check_latest(timeout=10):
         "User-Agent": f"{core.APP_NAME}/{core.APP_VERSION}",
     })
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as res:
+        with urllib.request.urlopen(req, timeout=timeout, context=TLS_CONTEXT) as res:
             data = json.load(res)
     except (OSError, ValueError):
         return None

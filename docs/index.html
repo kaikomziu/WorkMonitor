@@ -7,6 +7,8 @@
 <meta name="description" content="キーボードやマウスを操作している時間だけを記録する、Windows 用の無料の作業時間トラッカー。放置した時間は数えません。">
 <link rel="icon" href="icon.png">
 <link rel="stylesheet" href="style.css">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.github.com; object-src 'none'; base-uri 'none'; form-action 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <script src="common.js"></script>
 <style>
   .hero { padding: 72px 0 40px; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 40px; align-items: center; }
@@ -109,7 +111,7 @@
       <div class="card feature"><div class="ico">🎯</div><h3>1日の目標と連続記録</h3><p>目標までの残り時間を表示し、達成したら通知。連続で達成した日数も数えます。</p></div>
       <div class="card feature"><div class="ico">🗂️</div><h3>アプリ別・カテゴリ別</h3><p>アプリごとに「作業に数えるか」やカテゴリを設定。ゲームや動画は数えない、などができます。</p></div>
       <div class="card feature"><div class="ico">📊</div><h3>日・週・月のレポート</h3><p>前の週や前の月と比べたグラフで、作業の増減がひと目でわかります。</p></div>
-      <div class="card feature"><div class="ico">☁️</div><h3>ウェブでも見られる</h3><p>ログインすると記録が同期され、スマホや別の PC のブラウザからも確認できます。</p></div>
+      <div class="card feature"><div class="ico">☁️</div><h3>ウェブでも見られる</h3><p>ログインすると記録が同期され、スマホや別の PC のブラウザからも確認できます。データはエンドツーエンドで暗号化されます。</p></div>
       <div class="card feature"><div class="ico">🪟</div><h3>オーバーレイと Discord</h3><p>画面の端に常にタイマーを表示。Discord のプロフィールに作業時間を出すこともできます。</p></div>
     </div>
   </section>
@@ -154,6 +156,9 @@
     <h2>よくある質問</h2>
     <details><summary>どんなデータが送られますか？</summary>
       <p>記録は基本的に PC の中だけに保存されます。ログインして同期をオンにした場合だけ、「日ごと・アプリごとの合計時間」「カテゴリ」「目標」をサーバーに送ります。ウィンドウのタイトル（開いているファイル名やページ名）は送りません。</p></details>
+    <details><summary>サーバーに送ったデータは安全ですか？</summary>
+      <p>送る前に PC の中で <b>AES-256-GCM</b> で暗号化する「エンドツーエンド暗号化」です。暗号の鍵はパスワードから PBKDF2（60万回）で作り、サーバーには暗号文しか置きません。サーバーの管理者でも中身（アプリ名・時間など）は読めません。このサイトで見るときも、復号はあなたのブラウザの中だけで行います。通信自体も TLS（HTTPS）で暗号化しています。</p>
+      <p>そのため、パスワードを忘れて再設定すると、クラウドの記録は読めなくなり作り直しになります（アプリが PC の記録から最大120日分を送り直します）。</p></details>
     <details><summary>無料ですか？</summary>
       <p>無料です。ソースコードは GitHub で公開しています（MIT ライセンス）。</p></details>
     <details><summary>アップデートはどうすればいいですか？</summary>
@@ -170,23 +175,6 @@
   </div>
 </footer>
 
-<script>
-  // ダウンロードのリンクと、最新版の番号・サイズを表示
-  document.getElementById('dl-installer').href = WM.downloads.installer;
-  document.getElementById('dl-zip').href = WM.downloads.zip;
-  fetch(`https://api.github.com/repos/${WM.repo}/releases/latest`)
-    .then(r => r.ok ? r.json() : Promise.reject())
-    .then(rel => {
-      const date = new Date(rel.published_at).toLocaleDateString('ja-JP');
-      document.getElementById('version-meta').textContent =
-        `最新版 ${rel.tag_name}（${date}）・Windows 10 / 11 対応・オープンソース（MIT）`;
-      const mb = n => `${(n / 1024 / 1024).toFixed(1)} MB`;
-      for (const a of rel.assets || []) {
-        if (a.name === 'WorkMonitor-Setup.exe') document.getElementById('size-installer').textContent = `${rel.tag_name} ・ ${mb(a.size)}`;
-        if (a.name === 'WorkMonitor.zip') document.getElementById('size-zip').textContent = `${rel.tag_name} ・ ${mb(a.size)}`;
-      }
-    })
-    .catch(() => { /* 取得できなくてもダウンロードはできる */ });
-</script>
+<script src="index.js"></script>
 </body>
 </html>

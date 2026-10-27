@@ -1,3 +1,4 @@
+cryptography
 pillow
 pystray
 sv-ttk

@@ -37,7 +37,10 @@ HTML = r"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>作業時間ダッシュボード</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<!-- integrity: CDN のファイルが書き換えられていたら読み込まない（SRI） -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"
+        integrity="sha512-CQBWl4fJHWbryGE+Pc7UAxWMUMNMWzWxF4SQo9CgkJIN1kx6djDQZjh3Y8SZ1d+6I+1zze6Z7kHXO7q3UyZAWw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
   :root { --bg:#f6f7f9; --card:#fff; --text:#1d2330; --sub:#6b7280; --line:#e5e7eb; --accent:#4f6bed; --up:#22a06b; --down:#d9534f; }
   :root[data-theme="dark"] { --bg:#14161b; --card:#1d2027; --text:#e8eaf0; --sub:#9aa1ad; --line:#2c3039; --accent:#7b93ff; }
