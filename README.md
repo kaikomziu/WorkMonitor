@@ -74,3 +74,7 @@ python monitor.py dashboard  :: ダッシュボードを開く
 | `discord_rpc.py` | Discord Rich Presence（外部ライブラリを使わない IPC 実装） |
 | `monitor.py` | コマンドライン版 |
 | `app_icon.py` | アイコンの描画 |
+
+## ライセンス
+
+[MIT License](LICENSE)
