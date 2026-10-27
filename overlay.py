@@ -16,6 +16,9 @@ SCALES = {"小": 0.8, "中": 1.0, "大": 1.35}
 PANEL = "#1d2027"
 TEXT = "#ffffff"
 SUB = "#aab1bd"
+TRACK = "#343844"
+GOAL = "#7b93ff"
+GOAL_DONE = "#22a06b"
 MARGIN = 24
 
 
@@ -112,12 +115,15 @@ class Overlay:
             self.on_moved(self.win.winfo_x(), self.win.winfo_y())
 
     # ---- 描画 ----
-    def update(self, time_text, dot_color, line2):
+    def update(self, time_text, dot_color, line2, progress=None):
+        """progress は目標の達成率（0〜1）。None なら目標バーを出さない"""
         if self.win is None:
             return
         # 全画面アプリの後ろに隠れないよう、ときどき最前面を掛け直す
         self.win.attributes("-topmost", True)
-        key = (time_text, dot_color, line2)
+        if progress is not None:
+            progress = round(progress, 3)
+        key = (time_text, dot_color, line2, progress)
         if key == self._last:
             return
         self._last = key
@@ -136,6 +142,13 @@ class Overlay:
         if show_app:
             c.create_text(int(20 * s) - r, int(53 * s), text=line2, anchor="w", fill=SUB,
                           font=("Yu Gothic UI", -int(13 * s)), width=w - int(26 * s))
+        # 目標の進み具合（下端の細いバー。達成したら緑）
+        if progress is not None:
+            x1, x2 = int(14 * s), w - int(14 * s)
+            y1, y2 = h - int(7 * s), h - int(4 * s)
+            c.create_rectangle(x1, y1, x2, y2, fill=TRACK, outline="")
+            color = GOAL_DONE if progress >= 1 else GOAL
+            c.create_rectangle(x1, y1, x1 + (x2 - x1) * progress, y2, fill=color, outline="")
 
 
 def rounded_rect(canvas, x1, y1, x2, y2, r, **kw):

@@ -14,12 +14,13 @@ import os
 import threading
 import time
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from discord_rpc import DiscordPresence
 
 APP_NAME = "WorkMonitor"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
+GITHUB_REPO = "kaikomziu/WorkMonitor"  # アップデート確認に使う
 
 # 配布する前に、自分で作った Discord アプリの Application ID をここに入れておくと
 # 利用者は設定なしで Discord 表示が使える（空なら利用者が設定画面で入力する）
@@ -31,7 +32,11 @@ UNCATEGORIZED = "未分類"
 
 DEFAULT_CONFIG = {
     "idle_threshold_sec": 60,     # この秒数入力が無ければ「放置」とみなす
+    "daily_goal_min": 180,        # 1日の目標（分）。0 なら目標なし
     "autostart": False,
+    "update_check": True,         # 起動時に GitHub で新しいバージョンを確認
+    # 通知を一度だけ出すための記録
+    "notified": {"goal_date": "", "week": "", "update_version": ""},
     "always_on_top": False,       # メイン画面を常に最前面に表示
     "discord_enabled": True,
     "discord_client_id": "",
@@ -99,9 +104,11 @@ def load_config():
     try:
         with open(CONFIG_PATH, encoding="utf-8") as f:
             saved = json.load(f)
-        overlay = saved.pop("overlay", {})
+        # 入れ子の設定は項目ごとに上書き（新しいバージョンで増えた項目に初期値を残す）
+        nested = {k: saved.pop(k, {}) for k in ("overlay", "notified")}
         config.update(saved)
-        config["overlay"].update(overlay)
+        for k, v in nested.items():
+            config[k].update(v)
     except (OSError, ValueError):
         pass
     return config
@@ -258,6 +265,37 @@ def load_day_by_app(date_str):
 def counted_seconds(config, by_app):
     """「作業に数えない」アプリを除いた合計"""
     return sum(sec for app, sec in by_app.items() if app_info(config, app)["count"])
+
+
+def day_total(config, day):
+    """指定日（date）の作業時間（秒）"""
+    return counted_seconds(config, load_day_by_app(day.strftime("%Y-%m-%d")))
+
+
+def goal_streak_before(config, today):
+    """昨日までに目標を連続で達成した日数（今日の分は呼び出し側で足す）"""
+    goal = config.get("daily_goal_min", 0) * 60
+    if goal <= 0:
+        return 0
+    streak = 0
+    day = today - timedelta(days=1)
+    for _ in range(365):
+        if day_total(config, day) < goal:
+            break
+        streak += 1
+        day -= timedelta(days=1)
+    return streak
+
+
+def week_total(config, monday):
+    return sum(day_total(config, monday + timedelta(days=i)) for i in range(7))
+
+
+def last_week_summary(config, today):
+    """(先週の合計秒, 先々週の合計秒)"""
+    this_monday = today - timedelta(days=today.weekday())
+    last = this_monday - timedelta(days=7)
+    return week_total(config, last), week_total(config, last - timedelta(days=7))
 
 
 # ===== 監視 =====

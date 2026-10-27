@@ -10,10 +10,12 @@ import os
 import queue
 import re
 import sys
+import threading
 import tkinter as tk
 import tkinter.font as tkfont
 import webbrowser
 import winreg
+from datetime import date
 from tkinter import messagebox, ttk
 
 import sv_ttk
@@ -21,6 +23,7 @@ from PIL import ImageTk
 
 import app_icon
 import core
+import updater
 from dashboard import build_dashboard
 from overlay import Overlay
 
@@ -33,6 +36,7 @@ RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 DISCORD_PORTAL_URL = "https://discord.com/developers/applications"
 FONT = "Yu Gothic UI"
 EXCLUDED_COLOR = "#e2a03f"
+UPDATE_INTERVAL_MS = 24 * 60 * 60 * 1000  # アップデート確認の間隔（1日）
 BODY_FONT = "SunValleyBodyFont"  # sv_ttk の本文フォント（入力欄もこれに揃える）
 
 
@@ -101,6 +105,11 @@ def fmt_hm(sec):
     return f"{sec // 3600}時間{sec % 3600 // 60:02d}分"
 
 
+def fmt_goal(minutes):
+    h, m = divmod(int(minutes), 60)
+    return (f"{h}時間" if h else "") + (f"{m}分" if m or not h else "")
+
+
 # ===== 設定画面 =====
 class SettingsDialog(tk.Toplevel):
     def __init__(self, app, tab=0):
@@ -160,7 +169,11 @@ class SettingsDialog(tk.Toplevel):
 
     # ---- 一般 ----
     def _tab_general(self):
-        f = self._page("一般", "記録のしかたと起動の設定です。")
+        f = self._page("一般", "目標・記録のしかた・起動の設定です。")
+        self.v_goal = tk.StringVar(value=f"{self.cfg['daily_goal_min'] / 60:g}")
+        self._row(f, "1日の目標（時間）",
+                  lambda p: ttk.Spinbox(p, font=BODY_FONT, from_=0, to=16, increment=0.5, width=8, textvariable=self.v_goal),
+                  note="達成すると通知でお知らせし、連続で達成した日数も数えます。0 にすると目標なし。")
         self.v_idle = tk.StringVar(value=str(self.cfg["idle_threshold_sec"]))
         self._row(f, "無操作で「休憩中」にするまでの秒数",
                   lambda p: ttk.Spinbox(p, font=BODY_FONT, from_=10, to=3600, increment=10, width=8, textvariable=self.v_idle),
@@ -170,8 +183,16 @@ class SettingsDialog(tk.Toplevel):
         self._switch(f, "Windows の起動時に自動で起動する", self.v_autostart)
         self.v_top = tk.BooleanVar(value=self.cfg["always_on_top"])
         self._switch(f, "メイン画面を常に一番上に表示する", self.v_top)
+        self.v_update = tk.BooleanVar(value=self.cfg["update_check"])
+        self._switch(f, "新しいバージョンが出たら知らせる", self.v_update,
+                     note="1日に1回、GitHub の公開ページに最新版の番号を問い合わせます（記録は送りません）。")
         ttk.Separator(f).pack(fill="x", pady=10)
-        ttk.Button(f, text="記録フォルダを開く", command=self.open_data_dir).pack(anchor="w")
+        r = ttk.Frame(f)
+        r.pack(fill="x")
+        ttk.Button(r, text="記録フォルダを開く", command=self.open_data_dir).pack(side="left")
+        ttk.Button(r, text="今すぐアップデートを確認", command=lambda: self.app.check_update(manual=True)) \
+            .pack(side="left", padx=8)
+        ttk.Label(r, text=f"バージョン {core.APP_VERSION}", foreground=self.app.sub_color).pack(side="right")
 
     def open_data_dir(self):
         os.makedirs(core.DATA_DIR, exist_ok=True)
@@ -396,6 +417,14 @@ class SettingsDialog(tk.Toplevel):
             self.nb.select(0)
             messagebox.showerror("設定", "休憩中にするまでの秒数は 10〜3600 の数字で入力してください。", parent=self)
             return
+        try:
+            goal_min = round(float(self.v_goal.get()) * 60)
+            if not 0 <= goal_min <= 24 * 60:
+                raise ValueError
+        except ValueError:
+            self.nb.select(0)
+            messagebox.showerror("設定", "1日の目標は 0〜24 の数字（時間）で入力してください。", parent=self)
+            return
         client = self.v_client.get().strip()
         if client and not client.isdigit():
             self.nb.select(3)
@@ -405,6 +434,8 @@ class SettingsDialog(tk.Toplevel):
         cfg = self.cfg
         cfg.update({
             "idle_threshold_sec": idle,
+            "daily_goal_min": goal_min,
+            "update_check": self.v_update.get(),
             "autostart": self.v_autostart.get(),
             "always_on_top": self.v_top.get(),
             "discord_enabled": self.v_discord.get(),
@@ -437,6 +468,9 @@ class App:
         self.tray = None
         self.tray_state = None
         self.tray_notified = False
+        self.update_info = None       # (バージョン, URL)
+        self.today = date.today()
+        self.streak_base = core.goal_streak_before(self.config, self.today)
 
         self.root = tk.Tk()
         self.root.title("WorkMonitor")
@@ -470,6 +504,9 @@ class App:
         if start_minimized and self.tray:
             self.root.withdraw()
         self.tick()
+        # 通知はタスクトレイの準備ができてから
+        self.root.after(5000, self._check_weekly)
+        self.root.after(8000, self._scheduled_update_check)
 
     def _setup_fonts(self):
         # sv_ttk のフォントを日本語が読みやすいものに
@@ -478,8 +515,16 @@ class App:
                 tkfont.nametofont(name, self.root).configure(family=FONT)
 
     def _build(self):
+        # アップデートのお知らせ（見つかったときだけ表示）
+        self.f_update = ttk.Frame(self.root, padding=(22, 10, 22, 0))
+        self.l_update = ttk.Label(self.f_update, text="", foreground="#4f6bed")
+        self.l_update.pack(side="left")
+        ttk.Button(self.f_update, text="ダウンロード", style="Accent.TButton",
+                   command=lambda: webbrowser.open(self.update_info[1])).pack(side="right")
+
         f = ttk.Frame(self.root, padding=(22, 16, 22, 18))
         f.pack(fill="both", expand=True)
+        self.f_main = f
 
         top = ttk.Frame(f)
         top.pack(fill="x")
@@ -500,6 +545,18 @@ class App:
         self.l_state.pack(side="left")
         self.l_state_sub = ttk.Label(f, text="", foreground=self.sub_color)
         self.l_state_sub.pack(anchor="w", pady=(2, 0))
+
+        # 今日の目標
+        self.f_goal = ttk.Frame(f)
+        self.f_goal.pack(fill="x", pady=(12, 0))
+        gh = ttk.Frame(self.f_goal)
+        gh.pack(fill="x")
+        self.l_goal = ttk.Label(gh, text="")
+        self.l_goal.pack(side="left")
+        self.l_streak = ttk.Label(gh, text="", foreground=EXCLUDED_COLOR)
+        self.l_streak.pack(side="right")
+        self.pb_goal = ttk.Progressbar(self.f_goal, maximum=100)
+        self.pb_goal.pack(fill="x", pady=(6, 0))
 
         # 今日のカテゴリ別
         ttk.Separator(f).pack(fill="x", pady=12)
@@ -582,6 +639,7 @@ class App:
             pystray.MenuItem("オーバーレイ", lambda: put("overlay"),
                              checked=lambda item: self.config["overlay"]["enabled"]),
             pystray.MenuItem("設定", lambda: put("settings")),
+            pystray.MenuItem("アップデートを確認", lambda: put(("check_update",))),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("終了", lambda: put("quit")),
         )
@@ -601,7 +659,12 @@ class App:
     def tick(self):
         while not self.events.empty():
             ev = self.events.get()
-            if ev == "show":
+            if isinstance(ev, tuple) and ev[0] == "update":
+                self._on_update_result(ev[1], ev[2])
+            elif isinstance(ev, tuple) and ev[0] == "check_update":
+                self.show()
+                self.check_update(manual=True)
+            elif ev == "show":
                 self.show()
             elif ev == "dashboard":
                 self.open_dashboard()
@@ -622,9 +685,100 @@ class App:
         self.c_dot.create_oval(1, 1, 13, 13, fill=color, outline="")
         self.l_discord.configure(text=f"Discord: {m.discord_status}")
         self._draw_categories()
-        self.overlay.update(fmt_hms(m.today_sec), color, line2)
+        progress = self._update_goal(m.today_sec)
+        self.overlay.update(fmt_hms(m.today_sec), color, line2, progress)
         self._update_tray(color, f"今日の作業 {fmt_hm(m.today_sec)}（{head}）")
         self.root.after(500, self.tick)
+
+    # ---- 目標 ----
+    def _update_goal(self, today_sec):
+        """目標の表示を更新し、達成率（0〜1、目標なしなら None）を返す"""
+        if date.today() != self.today:   # 日付が変わった
+            self.today = date.today()
+            self.streak_base = core.goal_streak_before(self.config, self.today)
+            self._check_weekly()
+
+        goal_min = self.config.get("daily_goal_min", 0)
+        if goal_min <= 0:
+            self.f_goal.pack_forget()
+            return None
+        if not self.f_goal.winfo_ismapped():
+            self.f_goal.pack(fill="x", pady=(12, 0), after=self.l_state_sub)
+
+        goal = goal_min * 60
+        done = today_sec >= goal
+        streak = self.streak_base + (1 if done else 0)
+        self.pb_goal.configure(value=min(100, today_sec / goal * 100))
+        if done:
+            self.l_goal.configure(text=f"🎉 目標 {fmt_goal(goal_min)} を達成！", foreground=app_icon.GREEN)
+        else:
+            self.l_goal.configure(text=f"目標 {fmt_goal(goal_min)} まで あと{fmt_hm(goal - today_sec)}",
+                                  foreground="")
+        self.l_streak.configure(text=f"🔥 {streak}日連続" if streak else "")
+
+        today_str = self.today.isoformat()
+        if done and self.config["notified"]["goal_date"] != today_str:
+            self.config["notified"]["goal_date"] = today_str
+            core.save_config(self.config)
+            self._notify(f"今日の目標 {fmt_goal(goal_min)} を達成しました！" + (f"（🔥{streak}日連続）" if streak > 1 else ""))
+        return min(1.0, today_sec / goal)
+
+    def _check_weekly(self):
+        """週が変わって最初の起動時に、先週のまとめを通知する"""
+        year, week, _ = self.today.isocalendar()
+        key = f"{year}-W{week:02d}"
+        if self.config["notified"]["week"] == key:
+            return
+        last, before = core.last_week_summary(self.config, self.today)
+        self.config["notified"]["week"] = key
+        core.save_config(self.config)
+        if last <= 0:
+            return
+        msg = f"先週の作業時間は {fmt_hm(last)} でした。"
+        if before > 0:
+            diff = (last - before) / before * 100
+            msg += f"（前の週より {diff:+.0f}%）"
+        self._notify(msg, "先週のまとめ")
+
+    # ---- アップデート確認 ----
+    def _scheduled_update_check(self):
+        if self.config.get("update_check", True):
+            self.check_update()
+        self.root.after(UPDATE_INTERVAL_MS, self._scheduled_update_check)
+
+    def check_update(self, manual=False):
+        """別スレッドで GitHub に問い合わせ、結果はイベントで受け取る"""
+        def worker():
+            self.events.put(("update", updater.check_latest(), manual))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_update_result(self, info, manual):
+        if info:
+            self.update_info = info
+            self.l_update.configure(text=f"新しいバージョン {info[0]} があります")
+            if not self.f_update.winfo_ismapped():
+                self.f_update.pack(fill="x", before=self.f_main)
+            if self.config["notified"]["update_version"] != info[0]:
+                self.config["notified"]["update_version"] = info[0]
+                core.save_config(self.config)
+                self._notify(f"新しいバージョン {info[0]} が公開されています。メイン画面からダウンロードできます。",
+                             "アップデートのお知らせ")
+        if manual:
+            parent = self.settings if self.settings and self.settings.winfo_exists() else self.root
+            if info:
+                if messagebox.askyesno("アップデート", f"新しいバージョン {info[0]} があります。\nダウンロードページを開きますか？",
+                                       parent=parent):
+                    webbrowser.open(info[1])
+            else:
+                messagebox.showinfo("アップデート", f"最新のバージョン（{core.APP_VERSION}）です。\n"
+                                    "（インターネットにつながっていない場合も、こう表示されます）", parent=parent)
+
+    def _notify(self, text, title="WorkMonitor"):
+        if self.tray:
+            try:
+                self.tray.notify(text, title)
+            except Exception:
+                pass
 
     # ---- 操作 ----
     def show(self):
@@ -681,6 +835,8 @@ class App:
         self.config = cfg
         self.monitor.apply_config(cfg)
         self._cats_key = None  # カテゴリ設定が変わったかもしれないので描き直す
+        # 目標やアプリ別ルールが変わると過去の達成状況も変わるので数え直す
+        self.streak_base = core.goal_streak_before(cfg, self.today)
         self._apply_window_options()
 
     def quit(self):
