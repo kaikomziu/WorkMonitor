@@ -1,0 +1,2 @@
+# バッチファイルは CRLF でないと cmd が日本語を正しく読めない
+*.bat text eol=crlf
