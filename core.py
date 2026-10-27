@@ -19,8 +19,9 @@ from datetime import datetime, timedelta
 from discord_rpc import DiscordPresence
 
 APP_NAME = "WorkMonitor"
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.2.0"
 GITHUB_REPO = "kaikomziu/WorkMonitor"  # アップデート確認に使う
+WEBSITE_URL = "https://kaikomziu.github.io/WorkMonitor/"
 
 # 配布する前に、自分で作った Discord アプリの Application ID をここに入れておくと
 # 利用者は設定なしで Discord 表示が使える（空なら利用者が設定画面で入力する）
@@ -34,6 +35,8 @@ DEFAULT_CONFIG = {
     "idle_threshold_sec": 60,     # この秒数入力が無ければ「放置」とみなす
     "daily_goal_min": 180,        # 1日の目標（分）。0 なら目標なし
     "autostart": False,
+    "theme": "system",            # "system"（Windows に合わせる） / "light" / "dark"
+    "cloud_sync": True,           # ログイン中は記録をクラウドに同期する
     "update_check": True,         # 起動時に GitHub で新しいバージョンを確認
     # 通知を一度だけ出すための記録
     "notified": {"goal_date": "", "week": "", "update_version": ""},
@@ -86,10 +89,45 @@ KNOWN_APPS = {
     "slack.exe": ("Slack", "コミュニケーション"),
     "ms-teams.exe": ("Teams", "コミュニケーション"),
     "zoom.exe": ("Zoom", "コミュニケーション"),
-    "explorer.exe": ("エクスプローラー", "その他"),
-    "workmonitor.exe": ("WorkMonitor", "その他"),
 }
-DEFAULT_CATEGORIES = ["開発", "ブラウザ", "資料作成", "デザイン", "コミュニケーション", "その他"]
+SYSTEM_CATEGORY = "Windows"
+DEFAULT_CATEGORIES = ["開発", "ブラウザ", "資料作成", "デザイン", "コミュニケーション", SYSTEM_CATEGORY, "その他"]
+
+# 初期状態で「作業に数えない」アプリ（このアプリ自身・Python・Windows の機能）
+NOT_COUNTED_APPS = {
+    "workmonitor.exe": ("WorkMonitor", "その他"),
+    "python.exe": ("Python", "その他"),
+    "pythonw.exe": ("Python", "その他"),
+    "py.exe": ("Python", "その他"),
+    "(なし)": ("（ウィンドウなし）", SYSTEM_CATEGORY),
+    "(不明)": ("（不明なアプリ）", SYSTEM_CATEGORY),
+    "explorer.exe": ("エクスプローラー・デスクトップ", SYSTEM_CATEGORY),
+    "searchhost.exe": ("Windows 検索", SYSTEM_CATEGORY),
+    "searchapp.exe": ("Windows 検索", SYSTEM_CATEGORY),
+    "startmenuexperiencehost.exe": ("スタートメニュー", SYSTEM_CATEGORY),
+    "shellexperiencehost.exe": ("通知・クイック設定", SYSTEM_CATEGORY),
+    "shellhost.exe": ("クイック設定", SYSTEM_CATEGORY),
+    "textinputhost.exe": ("文字入力（IME）", SYSTEM_CATEGORY),
+    "ctfmon.exe": ("文字入力（IME）", SYSTEM_CATEGORY),
+    "lockapp.exe": ("ロック画面", SYSTEM_CATEGORY),
+    "logonui.exe": ("サインイン画面", SYSTEM_CATEGORY),
+    "consent.exe": ("ユーザーアカウント制御", SYSTEM_CATEGORY),
+    "credentialuibroker.exe": ("資格情報の入力", SYSTEM_CATEGORY),
+    "applicationframehost.exe": ("Windows アプリ", SYSTEM_CATEGORY),
+    "systemsettings.exe": ("設定", SYSTEM_CATEGORY),
+    "taskmgr.exe": ("タスクマネージャー", SYSTEM_CATEGORY),
+    "control.exe": ("コントロールパネル", SYSTEM_CATEGORY),
+    "mmc.exe": ("管理ツール", SYSTEM_CATEGORY),
+    "rundll32.exe": ("Windows の機能", SYSTEM_CATEGORY),
+    "dllhost.exe": ("Windows の機能", SYSTEM_CATEGORY),
+    "openwith.exe": ("プログラムから開く", SYSTEM_CATEGORY),
+    "pickerhost.exe": ("ファイルの選択", SYSTEM_CATEGORY),
+    "widgets.exe": ("ウィジェット", SYSTEM_CATEGORY),
+    "screenclippinghost.exe": ("画面の切り取り", SYSTEM_CATEGORY),
+    "securityhealthsystray.exe": ("Windows セキュリティ", SYSTEM_CATEGORY),
+    "smartscreen.exe": ("SmartScreen", SYSTEM_CATEGORY),
+    "osk.exe": ("スクリーンキーボード", SYSTEM_CATEGORY),
+}
 
 # データはユーザーごとの AppData に置く（exe を Program Files に置いても書き込めるように）
 DATA_DIR = os.path.join(os.environ.get("APPDATA") or os.path.expanduser("~"), APP_NAME)
@@ -127,8 +165,11 @@ def effective_client_id(config):
 def app_info(config, app):
     """アプリのルール（初期値 → ユーザー設定の順に上書き）"""
     key = app.lower()
-    name, category = KNOWN_APPS.get(key, (os.path.splitext(app)[0], UNCATEGORIZED))
-    info = {"name": name, "category": category, "count": True, "discord": ""}
+    if key in NOT_COUNTED_APPS:
+        (name, category), count = NOT_COUNTED_APPS[key], False
+    else:
+        (name, category), count = KNOWN_APPS.get(key, (os.path.splitext(app)[0], UNCATEGORIZED)), True
+    info = {"name": name, "category": category, "count": count, "discord": ""}
     info.update(config.get("app_rules", {}).get(key, {}))
     return info
 

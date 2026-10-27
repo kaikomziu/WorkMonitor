@@ -38,9 +38,11 @@ HTML = r"""<!doctype html>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root { --bg:#f6f7f9; --card:#fff; --text:#1d2330; --sub:#6b7280; --line:#e5e7eb; --accent:#4f6bed; --up:#22a06b; --down:#d9534f; }
+  :root[data-theme="dark"] { --bg:#14161b; --card:#1d2027; --text:#e8eaf0; --sub:#9aa1ad; --line:#2c3039; --accent:#7b93ff; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#14161b; --card:#1d2027; --text:#e8eaf0; --sub:#9aa1ad; --line:#2c3039; --accent:#7b93ff; }
+    :root:not([data-theme="light"]) { --bg:#14161b; --card:#1d2027; --text:#e8eaf0; --sub:#9aa1ad; --line:#2c3039; --accent:#7b93ff; }
   }
+  .theme-btn { font:inherit; border:1px solid var(--line); background:var(--card); color:var(--text); border-radius:8px; padding:6px 12px; cursor:pointer; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--text); font-family:"Segoe UI","Yu Gothic UI",sans-serif; }
   main { max-width:1100px; margin:0 auto; padding:24px 16px 48px; }
@@ -81,6 +83,7 @@ HTML = r"""<!doctype html>
         <button data-mode="day">日</button><button data-mode="week">週</button><button data-mode="month">月</button>
       </div>
       <select id="period"></select>
+      <button class="theme-btn" id="theme"></button>
     </div>
   </header>
   <div id="root"></div>
@@ -89,6 +92,18 @@ HTML = r"""<!doctype html>
 const DATA = __DATA__;
 const COLORS = __COLORS__;   // カテゴリの色はアプリ本体と共通
 const GOAL = __GOAL__;       // 1日の目標（秒）。0 なら目標なし
+
+// ---- テーマ（アプリの設定が初期値。ボタンで切り替え）----
+const themeBtn = document.getElementById('theme');
+const isDark = () => document.documentElement.dataset.theme === 'dark' ||
+  (!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
+function setTheme(t) {
+  if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  else delete document.documentElement.dataset.theme;
+  themeBtn.textContent = isDark() ? '☀ ライト' : '🌙 ダーク';
+}
+setTheme('__THEME__');
+themeBtn.onclick = () => { setTheme(isDark() ? 'light' : 'dark'); if (sel.value) render(sel.value); };
 const dates = Object.keys(DATA).sort();
 const root = document.getElementById('root');
 const sel = document.getElementById('period');
@@ -300,7 +315,8 @@ def build_dashboard(config=None, open_browser=True):
         return json.dumps(obj, ensure_ascii=False).replace("</", "<\\/")
     html = (HTML.replace("__DATA__", js(load_logs(config)))
                 .replace("__COLORS__", js(core.category_colors(config)))
-                .replace("__GOAL__", str(int(config.get("daily_goal_min", 0)) * 60)))
+                .replace("__GOAL__", str(int(config.get("daily_goal_min", 0)) * 60))
+                .replace("__THEME__", config.get("theme", "system")))
     os.makedirs(core.DATA_DIR, exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(html)

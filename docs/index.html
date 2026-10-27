@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WorkMonitor - 手を動かした時間だけを記録する作業時間トラッカー</title>
+<meta name="description" content="キーボードやマウスを操作している時間だけを記録する、Windows 用の無料の作業時間トラッカー。放置した時間は数えません。">
+<link rel="icon" href="icon.png">
+<link rel="stylesheet" href="style.css">
+<script src="common.js"></script>
+<style>
+  .hero { padding: 72px 0 40px; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 40px; align-items: center; }
+  @media (max-width: 860px) { .hero { grid-template-columns: minmax(0, 1fr); padding-top: 40px; } }
+  @media (max-width: 480px) { .cta .btn { flex: 1 1 100%; } .mock .row { grid-template-columns: 80px 1fr 70px; } }
+  .hero h1 { font-size: clamp(30px, 5vw, 48px); line-height: 1.2; margin: 0 0 16px; letter-spacing: -.01em; }
+  .hero h1 em { font-style: normal; color: var(--accent); }
+  .hero p.lead { font-size: 18px; color: var(--sub); margin: 0 0 28px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 10px; }
+  .meta { margin-top: 12px; font-size: 13px; color: var(--sub); }
+
+  /* アプリ画面の見本 */
+  .mock { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px;
+    box-shadow: 0 20px 50px -24px rgba(20, 30, 60, .35); }
+  .mock .label { color: var(--sub); font-size: 13px; }
+  .mock .time { font-family: "Segoe UI", sans-serif; font-weight: 700; font-size: 52px; letter-spacing: -.02em; line-height: 1.1; margin: 4px 0; }
+  .mock .state { color: #22a06b; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .mock .state::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: #22a06b; }
+  .mock .goal { margin: 16px 0 6px; font-size: 14px; display: flex; justify-content: space-between; }
+  .mock .track { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+  .mock .track i { display: block; height: 100%; width: 64%; background: var(--accent); }
+  .mock .rows { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .mock .row { display: grid; grid-template-columns: 110px 1fr 70px; gap: 10px; align-items: center; font-size: 14px; padding: 4px 0; }
+  .mock .row b { height: 6px; border-radius: 3px; display: block; }
+  .mock .row span:last-child { text-align: right; color: var(--sub); font-variant-numeric: tabular-nums; }
+
+  section { padding: 40px 0; }
+  section h2 { font-size: 26px; margin: 0 0 8px; }
+  section .intro { color: var(--sub); margin: 0 0 24px; }
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 14px; }
+  .feature .ico { font-size: 24px; }
+  .feature h3 { margin: 8px 0 4px; font-size: 17px; }
+  .feature p { margin: 0; color: var(--sub); font-size: 14px; }
+
+  .downloads { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 720px) { .downloads { grid-template-columns: minmax(0, 1fr); } }
+  .dl .btn { white-space: normal; text-align: center; }
+  .dl h3 { margin: 0 0 4px; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .dl .badge { font-size: 12px; background: var(--soft); color: var(--accent); border-radius: 999px; padding: 2px 10px; font-weight: 600; }
+  .dl ul { margin: 10px 0 16px; padding-left: 1.2em; color: var(--sub); font-size: 14px; }
+  .dl .btn { width: 100%; }
+  .dl .size { font-size: 13px; color: var(--sub); margin-top: 8px; text-align: center; }
+
+  .steps { counter-reset: s; display: grid; gap: 12px; }
+  .steps li { list-style: none; counter-increment: s; display: grid; grid-template-columns: 36px 1fr; gap: 12px; align-items: start; }
+  .steps li::before { content: counter(s); width: 32px; height: 32px; border-radius: 50%; background: var(--soft);
+    color: var(--accent); font-weight: 700; display: grid; place-items: center; }
+  .steps { padding: 0; margin: 0; }
+  details { border-bottom: 1px solid var(--line); padding: 14px 0; }
+  details summary { cursor: pointer; font-weight: 600; }
+  details p { color: var(--sub); margin: 8px 0 0; }
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div class="wrap">
+    <a class="logo" href="./"><img src="icon.png" alt="">WorkMonitor</a>
+    <div class="spacer"></div>
+    <div class="links">
+      <a class="text hide-sm" href="#features">機能</a>
+      <a class="text hide-sm" href="#download">ダウンロード</a>
+      <a class="text hide-sm" href="https://github.com/kaikomziu/WorkMonitor">GitHub</a>
+      <button class="icon-btn" data-theme-toggle></button>
+      <a class="btn primary" href="app.html">ログイン</a>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div class="hero">
+    <div>
+      <h1>手を動かした時間だけを、<br><em>正確に</em>記録する。</h1>
+      <p class="lead">WorkMonitor は、キーボードやマウスを操作している時間だけを数える Windows 用の作業時間トラッカーです。
+        アプリを開いたまま放置した時間は数えません。</p>
+      <div class="cta">
+        <a class="btn primary big" href="#download">無料でダウンロード</a>
+        <a class="btn big" href="app.html">記録を見る（ログイン）</a>
+      </div>
+      <div class="meta" id="version-meta">Windows 10 / 11 対応・オープンソース（MIT）</div>
+    </div>
+    <div class="mock" aria-hidden="true">
+      <div class="label">今日の作業時間</div>
+      <div class="time">3:12:45</div>
+      <div class="state">作業中 <span class="sub" style="font-weight:400">VS Code（開発）</span></div>
+      <div class="goal"><span>目標 5時間 まで あと1時間47分</span><span style="color:#e2a03f">🔥 4日連続</span></div>
+      <div class="track"><i></i></div>
+      <div class="rows">
+        <div class="row"><span>開発</span><b style="background:#4f6bed;width:100%"></b><span>1時間48分</span></div>
+        <div class="row"><span>資料作成</span><b style="background:#e2a03f;width:52%"></b><span>0時間56分</span></div>
+        <div class="row"><span>ブラウザ</span><b style="background:#22a06b;width:26%"></b><span>0時間28分</span></div>
+      </div>
+    </div>
+  </div>
+
+  <section id="features">
+    <h2>できること</h2>
+    <p class="intro">「パソコンの前にいた時間」ではなく「実際に作業した時間」がわかります。</p>
+    <div class="features">
+      <div class="card feature"><div class="ico">⌨️</div><h3>操作した時間だけ数える</h3><p>一定時間（初期値 60 秒）操作がないと、自動で「休憩中」になります。</p></div>
+      <div class="card feature"><div class="ico">🎯</div><h3>1日の目標と連続記録</h3><p>目標までの残り時間を表示し、達成したら通知。連続で達成した日数も数えます。</p></div>
+      <div class="card feature"><div class="ico">🗂️</div><h3>アプリ別・カテゴリ別</h3><p>アプリごとに「作業に数えるか」やカテゴリを設定。ゲームや動画は数えない、などができます。</p></div>
+      <div class="card feature"><div class="ico">📊</div><h3>日・週・月のレポート</h3><p>前の週や前の月と比べたグラフで、作業の増減がひと目でわかります。</p></div>
+      <div class="card feature"><div class="ico">☁️</div><h3>ウェブでも見られる</h3><p>ログインすると記録が同期され、スマホや別の PC のブラウザからも確認できます。</p></div>
+      <div class="card feature"><div class="ico">🪟</div><h3>オーバーレイと Discord</h3><p>画面の端に常にタイマーを表示。Discord のプロフィールに作業時間を出すこともできます。</p></div>
+    </div>
+  </section>
+
+  <section id="download">
+    <h2>ダウンロード</h2>
+    <p class="intro">どちらも中身は同じです。ふだん使うならインストーラーがおすすめです。</p>
+    <div class="downloads">
+      <div class="card dl">
+        <h3>インストーラー <span class="badge">おすすめ</span></h3>
+        <ul>
+          <li>スタートメニューに登録され、すぐに起動できます</li>
+          <li>Windows の「アプリ」から普通にアンインストールできます</li>
+          <li>管理者の権限は不要です</li>
+        </ul>
+        <a class="btn primary big" id="dl-installer" href="#">WorkMonitor-Setup.exe をダウンロード</a>
+        <div class="size" id="size-installer"></div>
+      </div>
+      <div class="card dl">
+        <h3>ZIP 版 <span class="badge">インストール不要</span></h3>
+        <ul>
+          <li>展開して WorkMonitor.exe を実行するだけ</li>
+          <li>USB メモリなど好きな場所に置けます</li>
+          <li>削除はフォルダごと消すだけです</li>
+        </ul>
+        <a class="btn big" id="dl-zip" href="#">WorkMonitor.zip をダウンロード</a>
+        <div class="size" id="size-zip"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>はじめ方</h2>
+    <ol class="steps">
+      <li><div><b>ダウンロードして起動</b><br><span class="sub">「Windows によって PC が保護されました」と出たら「詳細情報」→「実行」を押してください（署名のない個人開発アプリのため表示されます）。</span></div></li>
+      <li><div><b>そのまま作業する</b><br><span class="sub">ウィンドウを閉じてもタスクトレイで記録を続けます。アイコンが緑なら作業中です。</span></div></li>
+      <li><div><b>ウェブでも見たいときはログイン</b><br><span class="sub">アプリの「設定 → アカウント」で登録・ログインすると、このサイトの「ログイン」から記録を見られます。</span></div></li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>よくある質問</h2>
+    <details><summary>どんなデータが送られますか？</summary>
+      <p>記録は基本的に PC の中だけに保存されます。ログインして同期をオンにした場合だけ、「日ごと・アプリごとの合計時間」「カテゴリ」「目標」をサーバーに送ります。ウィンドウのタイトル（開いているファイル名やページ名）は送りません。</p></details>
+    <details><summary>無料ですか？</summary>
+      <p>無料です。ソースコードは GitHub で公開しています（MIT ライセンス）。</p></details>
+    <details><summary>アップデートはどうすればいいですか？</summary>
+      <p>新しいバージョンが出るとアプリ内でお知らせします。このページから最新版をダウンロードして、インストーラー版は上書きインストール、ZIP 版は exe を入れ替えてください。記録と設定は引き継がれます。</p></details>
+    <details><summary>Mac や Linux でも使えますか？</summary>
+      <p>今のところ Windows 10 / 11 専用です。記録の閲覧はこのサイトからどの端末でもできます。</p></details>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>WorkMonitor ・ MIT License</span>
+    <span><a href="https://github.com/kaikomziu/WorkMonitor">GitHub</a> ・ <a href="https://github.com/kaikomziu/WorkMonitor/releases">リリース一覧</a></span>
+  </div>
+</footer>
+
+<script>
+  // ダウンロードのリンクと、最新版の番号・サイズを表示
+  document.getElementById('dl-installer').href = WM.downloads.installer;
+  document.getElementById('dl-zip').href = WM.downloads.zip;
+  fetch(`https://api.github.com/repos/${WM.repo}/releases/latest`)
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(rel => {
+      const date = new Date(rel.published_at).toLocaleDateString('ja-JP');
+      document.getElementById('version-meta').textContent =
+        `最新版 ${rel.tag_name}（${date}）・Windows 10 / 11 対応・オープンソース（MIT）`;
+      const mb = n => `${(n / 1024 / 1024).toFixed(1)} MB`;
+      for (const a of rel.assets || []) {
+        if (a.name === 'WorkMonitor-Setup.exe') document.getElementById('size-installer').textContent = `${rel.tag_name} ・ ${mb(a.size)}`;
+        if (a.name === 'WorkMonitor.zip') document.getElementById('size-zip').textContent = `${rel.tag_name} ・ ${mb(a.size)}`;
+      }
+    })
+    .catch(() => { /* 取得できなくてもダウンロードはできる */ });
+</script>
+</body>
+</html>

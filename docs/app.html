@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>記録を見る - WorkMonitor</title>
+<link rel="icon" href="icon.png">
+<link rel="stylesheet" href="style.css">
+<script src="common.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  .auth { max-width: 420px; margin: 56px auto; }
+  .auth h1 { font-size: 22px; margin: 0 0 4px; }
+  .tabs { display: flex; gap: 4px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 3px; margin: 16px 0 4px; }
+  .tabs button { flex: 1; font: inherit; border: 0; background: none; color: var(--sub); padding: 7px; border-radius: 7px; cursor: pointer; }
+  .tabs button.on { background: var(--accent); color: var(--accent-text); }
+  .auth .btn.primary { width: 100%; margin-top: 8px; }
+  .auth .alt { margin-top: 14px; font-size: 14px; text-align: center; }
+  .hidden { display: none !important; }
+
+  .dash { padding: 24px 0 0; }
+  .dash-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .dash-head h1 { font-size: 20px; margin: 0; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .controls select { width: auto; }
+  .seg { display: inline-flex; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+  .seg button { font: inherit; border: 0; background: none; color: var(--sub); padding: 5px 16px; border-radius: 7px; cursor: pointer; }
+  .seg button.on { background: var(--accent); color: var(--accent-text); }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px; }
+  .kpi .label { color: var(--sub); font-size: 13px; }
+  .kpi .value { font-size: 26px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kpi .note { color: var(--sub); font-size: 12px; }
+  .up { color: var(--up); } .down { color: var(--down); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  h2 { font-size: 15px; margin: 0 0 12px; }
+  .chart { position: relative; height: 260px; }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+  th { color: var(--sub); font-weight: 500; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .bar { height: 6px; border-radius: 3px; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .tag { font-size: 12px; color: var(--sub); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
+  .empty { text-align: center; padding: 48px 16px; }
+  .user { color: var(--sub); font-size: 14px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div class="wrap">
+    <a class="logo" href="./"><img src="icon.png" alt="">WorkMonitor</a>
+    <div class="spacer"></div>
+    <div class="links">
+      <span class="user hidden" id="user-email"></span>
+      <button class="icon-btn" data-theme-toggle></button>
+      <button class="btn hidden" id="logout">ログアウト</button>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+  <!-- ログイン・登録 -->
+  <div class="card auth hidden" id="auth">
+    <h1 id="auth-title">ログイン</h1>
+    <p class="sub small" id="auth-desc">WorkMonitor アプリと同じアカウントでログインすると、同期した記録を見られます。</p>
+    <div class="tabs" id="auth-tabs">
+      <button data-tab="login" class="on">ログイン</button>
+      <button data-tab="signup">新しく登録</button>
+    </div>
+    <form id="auth-form">
+      <label class="field" id="f-email"><span>メールアドレス</span><input type="email" id="email" autocomplete="email" required></label>
+      <label class="field" id="f-password"><span>パスワード（6文字以上）</span><input type="password" id="password" autocomplete="current-password" minlength="6"></label>
+      <button class="btn primary big" type="submit" id="auth-submit">ログイン</button>
+    </form>
+    <div class="msg" id="auth-msg" role="status"></div>
+    <div class="alt" id="auth-alt"><a href="#forgot" id="to-forgot">パスワードを忘れた場合</a></div>
+  </div>
+
+  <!-- ダッシュボード -->
+  <div class="dash hidden" id="dash">
+    <div class="dash-head">
+      <h1>作業時間</h1>
+      <div class="controls">
+        <div class="seg" id="mode"><button data-mode="day">日</button><button data-mode="week">週</button><button data-mode="month">月</button></div>
+        <select id="period" aria-label="期間"></select>
+      </div>
+    </div>
+    <div id="root"><div class="card empty sub">読み込んでいます…</div></div>
+    <p class="sub small" id="sync-info" style="margin-top:12px"></p>
+  </div>
+</main>
+
+<script>
+const sb = supabase.createClient(WM.supabaseUrl, WM.supabaseKey);
+const $ = id => document.getElementById(id);
+const pageUrl = location.origin + location.pathname;
+
+// ================= ログイン・登録 =================
+let authMode = 'login';   // login / signup / forgot / recovery
+const AUTH_TEXT = {
+  login:    { title: 'ログイン', submit: 'ログイン', desc: 'WorkMonitor アプリと同じアカウントでログインすると、同期した記録を見られます。' },
+  signup:   { title: '新しく登録', submit: '登録する', desc: '登録後に確認メールが届きます。リンクを開くと登録が完了します。アプリの「設定 → アカウント」でも同じアカウントでログインしてください。' },
+  forgot:   { title: 'パスワードの再設定', submit: '再設定メールを送る', desc: '登録したメールアドレスに、パスワードを再設定するためのリンクを送ります。' },
+  recovery: { title: '新しいパスワード', submit: 'パスワードを変更', desc: '新しいパスワードを入力してください。' },
+};
+const ERRORS = {
+  'invalid login credentials': 'メールアドレスかパスワードが違います。',
+  'email not confirmed': 'メールアドレスの確認が済んでいません。届いた確認メールのリンクを開いてください。',
+  'user already registered': 'このメールアドレスはすでに登録されています。ログインしてください。',
+  'password should be at least': 'パスワードは6文字以上にしてください。',
+  'rate limit': '送信が多すぎます。しばらく待ってからやり直してください。',
+  'same password': '今と同じパスワードは使えません。',
+};
+const jaError = e => {
+  const m = (e && e.message || String(e)).toLowerCase();
+  for (const k in ERRORS) if (m.includes(k)) return ERRORS[k];
+  return 'エラーが起きました: ' + (e && e.message || e);
+};
+function msg(text, kind) { const el = $('auth-msg'); el.textContent = text || ''; el.className = 'msg ' + (kind || ''); }
+
+function setAuthMode(m) {
+  authMode = m;
+  const t = AUTH_TEXT[m];
+  $('auth-title').textContent = t.title;
+  $('auth-desc').textContent = t.desc;
+  $('auth-submit').textContent = t.submit;
+  $('auth-tabs').classList.toggle('hidden', m === 'forgot' || m === 'recovery');
+  document.querySelectorAll('#auth-tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === m));
+  $('f-email').classList.toggle('hidden', m === 'recovery');
+  $('f-password').classList.toggle('hidden', m === 'forgot');
+  $('password').autocomplete = m === 'login' ? 'current-password' : 'new-password';
+  $('auth-alt').innerHTML = m === 'login' ? '<a href="#forgot">パスワードを忘れた場合</a>'
+                          : m === 'forgot' ? '<a href="#">ログインに戻る</a>' : '';
+  msg('');
+}
+document.querySelectorAll('#auth-tabs button').forEach(b => b.onclick = () => setAuthMode(b.dataset.tab));
+window.addEventListener('hashchange', () => { if (!session) setAuthMode(location.hash === '#forgot' ? 'forgot' : 'login'); });
+
+$('auth-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const email = $('email').value.trim(), password = $('password').value;
+  if (authMode !== 'forgot' && password.length < 6) return msg('パスワードは6文字以上にしてください。', 'error');
+  $('auth-submit').disabled = true;
+  msg('処理しています…');
+  try {
+    if (authMode === 'login') {
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    } else if (authMode === 'signup') {
+      const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: pageUrl } });
+      if (error) throw error;
+      if (!data.session) msg(`${email} に確認メールを送りました。メールのリンクを開くと登録が完了します。`, 'ok');
+    } else if (authMode === 'forgot') {
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: pageUrl });
+      if (error) throw error;
+      msg('再設定のメールを送りました。メールのリンクを開いてください。', 'ok');
+    } else if (authMode === 'recovery') {
+      const { error } = await sb.auth.updateUser({ password });
+      if (error) throw error;
+      msg('パスワードを変更しました。', 'ok');
+      history.replaceState(null, '', pageUrl);
+      showDashboard();
+    }
+  } catch (err) {
+    msg(jaError(err), 'error');
+  } finally {
+    $('auth-submit').disabled = false;
+  }
+};
+
+$('logout').onclick = async () => { await sb.auth.signOut(); };
+
+let session = null;
+sb.auth.onAuthStateChange((event, s) => {
+  session = s;
+  if (event === 'PASSWORD_RECOVERY') { showAuth('recovery'); return; }
+  if (authMode === 'recovery' && s) return;   // 新しいパスワードの入力中はそのまま
+  s ? showDashboard() : showAuth(location.hash === '#forgot' ? 'forgot' : 'login');
+});
+
+function showAuth(mode) {
+  $('dash').classList.add('hidden');
+  $('auth').classList.remove('hidden');
+  $('logout').classList.add('hidden');
+  $('user-email').classList.add('hidden');
+  setAuthMode(mode);
+}
+
+let loadedFor = null;
+function showDashboard() {
+  $('auth').classList.add('hidden');
+  $('dash').classList.remove('hidden');
+  $('logout').classList.remove('hidden');
+  $('user-email').textContent = session.user.email;
+  $('user-email').classList.remove('hidden');
+  if (loadedFor !== session.user.id) { loadedFor = session.user.id; loadData(); }
+}
+
+// ================= データ =================
+let DATA = {}, dates = [], GOAL = 0, COLORS = {}, CATS = [];
+const PALETTE = ['#4f6bed','#22a06b','#e2a03f','#d9534f','#8e6bd8','#2bb3c0','#e57fb0','#7f8c8d'];
+const catColor = c => COLORS[c] || PALETTE[Math.max(0, CATS.indexOf(c)) % PALETTE.length];
+const total = d => (DATA[d] || []).reduce((a, r) => a + r[1], 0);
+
+async function loadData() {
+  $('root').innerHTML = '<div class="card empty sub">読み込んでいます…</div>';
+  try {
+    const since = new Date(); since.setDate(since.getDate() - 400);
+    const rows = [];
+    // 1回に取れる行数に上限があるので、1000行ずつ取る
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await sb.from('wm_daily').select('day,name,category,seconds')
+        .gte('day', iso(since)).order('day').range(from, from + 999);
+      if (error) throw error;
+      rows.push(...data);
+      if (data.length < 1000) break;
+    }
+    const { data: prof } = await sb.from('wm_profiles').select('daily_goal_min,category_colors,last_sync_at,app_version').maybeSingle();
+    DATA = {};
+    rows.forEach(r => (DATA[r.day] = DATA[r.day] || []).push([r.name, r.seconds, r.category]));
+    dates = Object.keys(DATA).sort();
+    GOAL = (prof && prof.daily_goal_min || 0) * 60;
+    COLORS = (prof && prof.category_colors) || {};
+    const ct = {};
+    dates.forEach(d => DATA[d].forEach(r => ct[r[2]] = (ct[r[2]] || 0) + r[1]));
+    CATS = Object.keys(ct).sort((a, b) => ct[b] - ct[a]);
+    $('sync-info').textContent = prof && prof.last_sync_at
+      ? `最後の同期: ${new Date(prof.last_sync_at).toLocaleString('ja-JP')}（アプリ ${prof.app_version || ''}）。アプリはログイン中、5分ごとに同期します。`
+      : '';
+    if (!dates.length) {
+      $('root').innerHTML = `<div class="card empty"><h2 style="font-size:18px">まだ同期された記録がありません</h2>
+        <p class="sub">WorkMonitor アプリの「設定 → アカウント」で、このアカウントにログインしてください。<br>ログインすると、これまでの記録（最大120日分）が送られます。</p>
+        <a class="btn primary" href="./#download">アプリをダウンロード</a></div>`;
+      return;
+    }
+    setMode(location.hash.slice(1) in MODES ? location.hash.slice(1) : 'day');
+  } catch (err) {
+    $('root').innerHTML = `<div class="card empty"><p class="down">読み込めませんでした: ${WM.esc(jaError(err))}</p></div>`;
+  }
+}
+
+// ================= 期間（日・週・月） =================
+const pad = n => String(n).padStart(2, '0');
+const iso = dt => `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+const parse = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d || 1); };
+const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return iso(d); };
+const mondayOf = s => { const d = parse(s); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return iso(d); };
+const monthOf = s => s.slice(0, 7);
+const md = s => `${+s.slice(5, 7)}/${+s.slice(8, 10)}`;
+const WEEKDAY = ['日', '月', '火', '水', '木', '金', '土'];
+const MODES = {
+  day:   { name: '日', prevName: '前日',   key: s => s, label: s => `${s}（${WEEKDAY[parse(s).getDay()]}）`,
+           days: k => [k], prev: k => addDays(k, -1) },
+  week:  { name: '週', prevName: '前の週', key: mondayOf, label: k => `${md(k)}〜${md(addDays(k, 6))} の週`,
+           days: k => [...Array(7).keys()].map(i => addDays(k, i)), prev: k => addDays(k, -7) },
+  month: { name: '月', prevName: '前の月', key: monthOf, label: k => `${+k.slice(0, 4)}年${+k.slice(5)}月`,
+           days: k => { const d = parse(k + '-01'), out = []; while (monthOf(iso(d)) === k) { out.push(iso(d)); d.setDate(d.getDate() + 1); } return out; },
+           prev: k => { const d = parse(k + '-01'); d.setMonth(d.getMonth() - 1); return monthOf(iso(d)); } },
+};
+let mode = 'day', charts = [];
+const sel = $('period');
+document.querySelectorAll('#mode button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+sel.onchange = () => render(sel.value);
+WM.onThemeChange.push(() => { if (sel.value) render(sel.value); });
+
+function setMode(m, key) {
+  mode = m;
+  document.querySelectorAll('#mode button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
+  const keys = [...new Set(dates.map(MODES[m].key))].sort().reverse();
+  sel.innerHTML = '';
+  keys.forEach(k => sel.add(new Option(MODES[m].label(k), k)));
+  if (key && keys.includes(key)) sel.value = key;
+  render(sel.value);
+}
+
+function sumBy(rows, idx) {
+  const m = {};
+  rows.forEach(r => m[r[idx]] = (m[r[idx]] || 0) + r[1]);
+  return Object.entries(m).sort((a, b) => b[1] - a[1]);
+}
+function diffHtml(now, before) {
+  if (!before) return '<span>比較なし</span>';
+  const p = (now - before) / before * 100;
+  return `<span class="${p >= 0 ? 'up' : 'down'}">${p >= 0 ? '▲' : '▼'} ${Math.abs(p).toFixed(0)}%</span>`;
+}
+
+function render(key) {
+  charts.forEach(c => c.destroy()); charts = [];
+  const M = MODES[mode], fmt = WM.fmt, esc = WM.esc;
+  const days = M.days(key), prevDays = M.days(M.prev(key));
+  const rows = days.flatMap(d => DATA[d] || []);
+  const sum = days.reduce((a, d) => a + total(d), 0);
+  const prevSum = prevDays.reduce((a, d) => a + total(d), 0);
+  const base = sum || 1;
+  const cats = sumBy(rows, 2);
+  const prevCats = Object.fromEntries(sumBy(prevDays.flatMap(d => DATA[d] || []), 2));
+  const apps = sumBy(rows, 0);
+  const appCat = {}; rows.forEach(r => appCat[r[0]] = r[2]);
+
+  let kpis;
+  if (mode === 'day') {
+    const idx = dates.indexOf(key);
+    const last7 = dates.slice(Math.max(0, idx - 6), idx + 1);
+    const avg7 = last7.reduce((a, d) => a + total(d), 0) / last7.length;
+    kpis = [
+      ['この日の作業時間', fmt(sum), GOAL ? (sum >= GOAL ? `<span class="up">🎉 目標達成（${Math.round(sum / GOAL * 100)}%）</span>` : `目標の ${Math.round(sum / GOAL * 100)}%`) : `${diffHtml(sum, prevSum)} 前日比`],
+      ['直近7日の平均', fmt(avg7), ''],
+      ['いちばん多いカテゴリ', cats[0] ? esc(cats[0][0]) : '-', cats[0] ? fmt(cats[0][1]) : ''],
+      ['いちばん使ったアプリ', apps[0] ? esc(apps[0][0]) : '-', apps[0] ? fmt(apps[0][1]) : ''],
+    ];
+  } else {
+    const worked = days.filter(d => total(d) > 0);
+    const achieved = days.filter(d => GOAL && total(d) >= GOAL).length;
+    kpis = [
+      [`この${M.name}の合計`, fmt(sum), `${diffHtml(sum, prevSum)} ${M.prevName}（${fmt(prevSum)}）より`],
+      ['1日の平均', fmt(worked.length ? sum / worked.length : 0), `作業した日 ${worked.length}日 / ${days.length}日`],
+      ['いちばん多いカテゴリ', cats[0] ? esc(cats[0][0]) : '-', cats[0] ? fmt(cats[0][1]) : ''],
+      GOAL ? ['目標を達成した日', `${achieved}日`, `目標 ${fmt(GOAL)} / 日`]
+           : ['いちばん作業した日', worked.length ? md(worked.slice().sort((a, b) => total(b) - total(a))[0]) : '-', ''],
+    ];
+  }
+
+  $('root').innerHTML = `
+    <div class="kpis">${kpis.map(([l, v, n]) => `<div class="card kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="note">${n}</div></div>`).join('')}</div>
+    <div class="card" style="margin-bottom:12px"><h2>${mode === 'day' ? '日別の作業時間（直近30日・カテゴリ別）' : `日別の作業時間（この${M.name}）`}</h2><div class="chart"><canvas id="cDaily"></canvas></div></div>
+    <div class="grid">
+      <div class="card"><h2>カテゴリ別</h2><div class="chart"><canvas id="cCat"></canvas></div></div>
+      <div class="card"><h2>${mode === 'day' ? 'アプリ別' : `カテゴリ別の推移（${M.prevName}と比べて）`}</h2><div class="chart"><canvas id="cThird"></canvas></div></div>
+    </div>
+    <div class="grid">
+      <div class="card scroll"><h2>カテゴリ別の内訳</h2>
+        <table><thead><tr><th>カテゴリ</th><th style="width:28%"></th><th class="num">時間</th><th class="num">${mode === 'day' ? '割合' : M.prevName + '比'}</th></tr></thead><tbody>
+        ${cats.map(([c, s]) => `<tr><td><span class="dot" style="background:${catColor(c)}"></span>${esc(c)}</td><td><div class="bar" style="width:${s / cats[0][1] * 100}%;background:${catColor(c)}"></div></td><td class="num">${fmt(s)}</td><td class="num">${mode === 'day' ? (s / base * 100).toFixed(1) + '%' : diffHtml(s, prevCats[c])}</td></tr>`).join('')}
+        </tbody></table></div>
+      <div class="card scroll"><h2>アプリ別の内訳</h2>
+        <table><thead><tr><th>アプリ</th><th>カテゴリ</th><th class="num">時間</th><th class="num">割合</th></tr></thead><tbody>
+        ${apps.slice(0, 15).map(([a, s]) => `<tr><td>${esc(a)}</td><td><span class="tag">${esc(appCat[a])}</span></td><td class="num">${fmt(s)}</td><td class="num">${(s / base * 100).toFixed(1)}%</td></tr>`).join('')}
+        </tbody></table></div>
+    </div>`;
+
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  Chart.defaults.color = css('--sub');
+  Chart.defaults.borderColor = css('--line');
+  Chart.defaults.font.family = '"Segoe UI","Yu Gothic UI","Hiragino Sans",sans-serif';
+  const legend = { display: true, position: 'bottom', labels: { boxWidth: 10, boxHeight: 10 } };
+  const opt = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
+
+  // 日別（カテゴリで積み上げ + 目標ライン）
+  let span;
+  if (mode === 'day') { const idx = dates.indexOf(key); span = dates.slice(Math.max(0, idx - 29), idx + 1); }
+  else span = days;
+  const spanCats = CATS.filter(c => span.some(d => (DATA[d] || []).some(r => r[2] === c)));
+  const catOfDay = (d, c) => (DATA[d] || []).filter(r => r[2] === c).reduce((a, r) => a + r[1], 0);
+  const ds = spanCats.map(c => ({ label: c, data: span.map(d => +(catOfDay(d, c) / 3600).toFixed(2)), backgroundColor: catColor(c), borderRadius: 3, stack: 'work' }));
+  if (GOAL) ds.push({ type: 'line', label: '目標', data: span.map(() => +(GOAL / 3600).toFixed(2)), stack: 'goal',
+    borderColor: css('--sub'), borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, fill: false });
+  charts.push(new Chart($('cDaily'), {
+    type: 'bar',
+    data: { labels: span.map(d => mode === 'month' ? String(+d.slice(8)) : `${md(d)}(${WEEKDAY[parse(d).getDay()]})`), datasets: ds },
+    options: { ...opt, scales: { x: { stacked: true }, y: { stacked: true, title: { display: true, text: '時間' } } },
+      plugins: { legend, tooltip: { callbacks: {
+        label: c => c.dataset.stack === 'goal' ? `目標: ${fmt(GOAL)}` : `${c.dataset.label}: ${fmt(catOfDay(span[c.dataIndex], c.dataset.label))}`,
+        footer: items => `合計 ${fmt(total(span[items[0].dataIndex]))}` } } },
+      onClick: (e, els) => { if (els.length) setMode('day', span[els[0].index]); } }
+  }));
+
+  charts.push(new Chart($('cCat'), {
+    type: 'doughnut',
+    data: { labels: cats.map(x => x[0]), datasets: [{ data: cats.map(x => x[1]), backgroundColor: cats.map(x => catColor(x[0])), borderColor: css('--card'), borderWidth: 2 }] },
+    options: { ...opt, plugins: { legend: { ...legend, position: 'right' }, tooltip: { callbacks: { label: c => `${c.label}: ${fmt(c.raw)}` } } } }
+  }));
+
+  if (mode === 'day') {
+    const top = apps.slice(0, 8);
+    charts.push(new Chart($('cThird'), {
+      type: 'bar',
+      data: { labels: top.map(x => x[0]), datasets: [{ data: top.map(x => +(x[1] / 3600).toFixed(2)), backgroundColor: top.map(x => catColor(appCat[x[0]])), borderRadius: 3 }] },
+      options: { ...opt, indexAxis: 'y', scales: { x: { title: { display: true, text: '時間' } } },
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => fmt(c.raw * 3600) } } } }
+    }));
+  } else {
+    const names = [...new Set([...cats.map(x => x[0]), ...Object.keys(prevCats)])];
+    charts.push(new Chart($('cThird'), {
+      type: 'bar',
+      data: { labels: names, datasets: [
+        { label: M.prevName, data: names.map(c => +((prevCats[c] || 0) / 3600).toFixed(2)), backgroundColor: css('--line'), borderRadius: 3 },
+        { label: `この${M.name}`, data: names.map(c => +(((cats.find(x => x[0] === c) || [0, 0])[1]) / 3600).toFixed(2)), backgroundColor: names.map(catColor), borderRadius: 3 },
+      ] },
+      options: { ...opt, indexAxis: 'y', scales: { x: { title: { display: true, text: '時間' } } },
+        plugins: { legend, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw * 3600)}` } } } }
+    }));
+  }
+}
+</script>
+</body>
+</html>

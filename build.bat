@@ -13,6 +13,15 @@ copy /y README.txt dist\ >nul
 powershell -NoProfile -Command "Compress-Archive -Path dist\WorkMonitor.exe, dist\README.txt -DestinationPath dist\WorkMonitor.zip -Force" || goto :error
 echo.
 echo 完成: %~dp0dist\WorkMonitor.zip
+rem Inno Setup があればインストーラーも作る
+set "ISCC=%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe"
+if not exist "%ISCC%" set "ISCC=%LocalAppData%\Programs\Inno Setup 6\ISCC.exe"
+if exist "%ISCC%" (
+  for /f %%v in ('python -c "import core; print(core.APP_VERSION)"') do "%ISCC%" /Q /DMyAppVersion=%%v installer.iss || goto :error
+  echo 完成: %~dp0dist\WorkMonitor-Setup.exe
+) else (
+  echo Inno Setup 6 が見つからないため、インストーラーは作りませんでした。
+)
 pause
 exit /b 0
 

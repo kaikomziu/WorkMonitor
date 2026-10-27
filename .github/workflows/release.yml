@@ -1,0 +1,68 @@
+# v から始まるタグを push すると、exe・ZIP・インストーラーを作ってリリースに添付する
+# 手動実行（workflow_dispatch）ではリリースは作らず、成果物（Artifacts）だけを残す
+name: Build and Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 依存パッケージ
+        run: python -m pip install -r requirements.txt pyinstaller
+
+      - name: exe をビルド
+        shell: pwsh
+        run: |
+          python -c "import app_icon; app_icon.save_ico('icon.ico')"
+          python -m PyInstaller --noconfirm --clean --onefile --windowed `
+            --name WorkMonitor --icon icon.ico `
+            --hidden-import pystray._win32 --collect-data sv_ttk app.py
+
+      - name: タグと core.py のバージョンが合っているか確認
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $v = python -c "import core; print(core.APP_VERSION)"
+          if ("v$v" -ne "${{ github.ref_name }}") { throw "core.APP_VERSION ($v) とタグ (${{ github.ref_name }}) が違います" }
+
+      - name: ZIP とインストーラーを作成
+        shell: pwsh
+        run: |
+          $v = python -c "import core; print(core.APP_VERSION)"
+          Copy-Item README.txt dist\
+          Compress-Archive -Path dist\WorkMonitor.exe, dist\README.txt -DestinationPath dist\WorkMonitor.zip -Force
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+          }
+          & $iscc "/DMyAppVersion=$v" installer.iss
+          if ($LASTEXITCODE -ne 0) { throw "インストーラーの作成に失敗しました" }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WorkMonitor
+          path: |
+            dist/WorkMonitor.zip
+            dist/WorkMonitor-Setup.exe
+
+      - name: リリースに添付
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/WorkMonitor.zip
+            dist/WorkMonitor-Setup.exe
+          generate_release_notes: true

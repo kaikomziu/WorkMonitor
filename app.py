@@ -11,6 +11,7 @@ import queue
 import re
 import sys
 import threading
+import time
 import tkinter as tk
 import tkinter.font as tkfont
 import webbrowser
@@ -22,6 +23,7 @@ import sv_ttk
 from PIL import ImageTk
 
 import app_icon
+import cloud
 import core
 import updater
 from dashboard import build_dashboard
@@ -37,6 +39,8 @@ DISCORD_PORTAL_URL = "https://discord.com/developers/applications"
 FONT = "Yu Gothic UI"
 EXCLUDED_COLOR = "#e2a03f"
 UPDATE_INTERVAL_MS = 24 * 60 * 60 * 1000  # アップデート確認の間隔（1日）
+SYNC_INTERVAL_MS = 5 * 60 * 1000           # クラウド同期の間隔（5分）
+THEMES = {"system": "Windows に合わせる", "light": "ライト", "dark": "ダーク"}
 BODY_FONT = "SunValleyBodyFont"  # sv_ttk の本文フォント（入力欄もこれに揃える）
 
 
@@ -130,6 +134,7 @@ class SettingsDialog(tk.Toplevel):
         self._tab_apps()
         self._tab_overlay()
         self._tab_discord()
+        self._tab_account()
         self.nb.select(tab)
 
         b = ttk.Frame(outer)
@@ -183,6 +188,9 @@ class SettingsDialog(tk.Toplevel):
         self._switch(f, "Windows の起動時に自動で起動する", self.v_autostart)
         self.v_top = tk.BooleanVar(value=self.cfg["always_on_top"])
         self._switch(f, "メイン画面を常に一番上に表示する", self.v_top)
+        self.v_theme = tk.StringVar(value=THEMES.get(self.cfg["theme"], THEMES["system"]))
+        self._row(f, "テーマ", lambda p: ttk.Combobox(p, font=BODY_FONT, textvariable=self.v_theme,
+                                                     values=list(THEMES.values()), width=18, state="readonly"))
         self.v_update = tk.BooleanVar(value=self.cfg["update_check"])
         self._switch(f, "新しいバージョンが出たら知らせる", self.v_update,
                      note="1日に1回、GitHub の公開ページに最新版の番号を問い合わせます（記録は送りません）。")
@@ -407,6 +415,139 @@ class SettingsDialog(tk.Toplevel):
             self.l_dstatus.configure(text=f"いまの状態: {self.app.monitor.discord_status}")
             self.after(1000, self._refresh_discord_status)
 
+    # ---- アカウント ----
+    def _tab_account(self):
+        f = self._page("アカウント", "ログインすると記録がクラウドに同期され、ウェブサイトからも見られます（別の PC からも）。"
+                                   "送るのは日ごと・アプリごとの合計時間と目標だけで、ウィンドウのタイトルは送りません。")
+        self.v_sync = tk.BooleanVar(value=self.cfg["cloud_sync"])
+        self.v_email = tk.StringVar(value=self.app.cloud.email)
+        self.v_password = tk.StringVar()
+        self.acc = ttk.Frame(f)
+        self.acc.pack(fill="both", expand=True)
+        self.l_acc_msg = ttk.Label(f, text="", wraplength=self.app.wrap, justify="left")
+        self.l_acc_msg.pack(anchor="w", pady=(10, 0))
+        self._render_account()
+
+    def _render_account(self):
+        for w in self.acc.winfo_children():
+            w.destroy()
+        c = self.app.cloud
+        if c.logged_in:
+            ttk.Label(self.acc, text=f"ログイン中: {c.email}", font=(FONT, 11, "bold")).pack(anchor="w")
+            self.l_last_sync = ttk.Label(self.acc, text=self.app.sync_text(), foreground=self.app.sub_color)
+            self.l_last_sync.pack(anchor="w", pady=(4, 8))
+            self._switch(self.acc, "記録をクラウドに同期する（5分ごと）", self.v_sync)
+            b = ttk.Frame(self.acc)
+            b.pack(fill="x", pady=(10, 0))
+            self.b_sync = ttk.Button(b, text="今すぐ同期", style="Accent.TButton", command=self._sync_now)
+            self.b_sync.pack(side="left")
+            ttk.Button(b, text="ウェブサイトで見る", command=lambda: webbrowser.open(core.WEBSITE_URL + "app.html")) \
+                .pack(side="left", padx=8)
+            ttk.Button(b, text="ログアウト", command=self._sign_out).pack(side="right")
+        else:
+            self._row(self.acc, "メールアドレス", lambda p: ttk.Entry(p, font=BODY_FONT, width=30, textvariable=self.v_email))
+            self._row(self.acc, "パスワード（6文字以上）",
+                      lambda p: ttk.Entry(p, font=BODY_FONT, width=30, textvariable=self.v_password, show="●"))
+            b = ttk.Frame(self.acc)
+            b.pack(fill="x", pady=(10, 0))
+            self.b_login = ttk.Button(b, text="ログイン", style="Accent.TButton", command=self._sign_in)
+            self.b_login.pack(side="left")
+            self.b_signup = ttk.Button(b, text="新しく登録", command=self._sign_up)
+            self.b_signup.pack(side="left", padx=8)
+            link = ttk.Label(b, text="パスワードを忘れた場合", foreground="#4f6bed", cursor="hand2")
+            link.pack(side="right")
+            link.bind("<Button-1>", lambda e: webbrowser.open(core.WEBSITE_URL + "app.html#forgot"))
+
+    def _acc_message(self, text, error=False):
+        self.l_acc_msg.configure(text=jp(text), foreground="#d9534f" if error else self.app.sub_color)
+
+    def _busy(self, busy, *buttons):
+        for btn in buttons:
+            if btn.winfo_exists():
+                btn.configure(state="disabled" if busy else "normal")
+
+    def _credentials(self):
+        email, pw = self.v_email.get().strip(), self.v_password.get()
+        if "@" not in email or not pw:
+            self._acc_message("メールアドレスとパスワードを入力してください。", error=True)
+            return None
+        return email, pw
+
+    def _sign_in(self):
+        cred = self._credentials()
+        if not cred:
+            return
+        self._busy(True, self.b_login, self.b_signup)
+        self._acc_message("ログインしています…")
+
+        def done(_r, err):
+            if not self.winfo_exists():
+                return
+            self._busy(False, self.b_login, self.b_signup)
+            if err:
+                self._acc_message(err, error=True)
+                return
+            self.v_password.set("")
+            self._render_account()
+            self._acc_message("ログインしました。これまでの記録（最大120日分）を同期しています…")
+            self.app.sync_now(full=True, done=self._sync_done)
+        self.app.run_cloud(lambda: self.app.cloud.sign_in(*cred), done)
+
+    def _sign_up(self):
+        cred = self._credentials()
+        if not cred:
+            return
+        if len(cred[1]) < 6:
+            self._acc_message("パスワードは6文字以上にしてください。", error=True)
+            return
+        self._busy(True, self.b_login, self.b_signup)
+        self._acc_message("登録しています…")
+
+        def done(logged_in, err):
+            if not self.winfo_exists():
+                return
+            self._busy(False, self.b_login, self.b_signup)
+            if err:
+                self._acc_message(err, error=True)
+            elif logged_in:
+                self.v_password.set("")
+                self._render_account()
+                self._acc_message("登録してログインしました。記録を同期しています…")
+                self.app.sync_now(full=True, done=self._sync_done)
+            else:
+                self._acc_message(f"{cred[0]} に確認メールを送りました。メールのリンクを開いてから、ここでログインしてください。")
+        self.app.run_cloud(lambda: self.app.cloud.sign_up(*cred), done)
+
+    def _sync_now(self):
+        self._busy(True, self.b_sync)
+        self._acc_message("同期しています…")
+        self.app.sync_now(full=True, done=self._sync_done)
+
+    def _sync_done(self, _r, err):
+        self.app.sync_error = err
+        if not self.winfo_exists():
+            return
+        if hasattr(self, "b_sync"):
+            self._busy(False, self.b_sync)
+        if err:
+            self._acc_message(err, error=True)
+            if not self.app.cloud.logged_in:
+                self._render_account()
+        else:
+            self._acc_message("同期しました。ウェブサイトにログインすると見られます。")
+            if hasattr(self, "l_last_sync") and self.l_last_sync.winfo_exists():
+                self.l_last_sync.configure(text=self.app.sync_text())
+
+    def _sign_out(self):
+        if not messagebox.askyesno("ログアウト", "ログアウトしますか？\nこの PC の記録は消えません。", parent=self):
+            return
+
+        def done(_r, _err):
+            if self.winfo_exists():
+                self._render_account()
+                self._acc_message("ログアウトしました。")
+        self.app.run_cloud(self.app.cloud.sign_out, done)
+
     # ---- 保存 / キャンセル ----
     def save(self):
         try:
@@ -438,6 +579,8 @@ class SettingsDialog(tk.Toplevel):
             "update_check": self.v_update.get(),
             "autostart": self.v_autostart.get(),
             "always_on_top": self.v_top.get(),
+            "theme": next(k for k, v in THEMES.items() if v == self.v_theme.get()),
+            "cloud_sync": self.v_sync.get(),
             "discord_enabled": self.v_discord.get(),
             "discord_client_id": client,
             "discord_show_app": self.v_show_app.get(),
@@ -450,8 +593,11 @@ class SettingsDialog(tk.Toplevel):
         except OSError as e:
             messagebox.showerror("設定", f"自動起動の設定に失敗しました。\n{e}", parent=self)
             return
-        self.app.apply_config(cfg)
         self.destroy()
+        self.app.apply_config(cfg)
+        # アプリ別ルールや目標が変わると過去の集計も変わるので送り直す
+        if cfg["cloud_sync"]:
+            self.app.sync_now(full=True)
 
     def cancel(self):
         self.app.overlay.apply(self.app.config["overlay"])  # プレビューを元に戻す
@@ -469,18 +615,17 @@ class App:
         self.tray_state = None
         self.tray_notified = False
         self.update_info = None       # (バージョン, URL)
+        self.cloud = cloud.Cloud()
+        self.cloud_lock = threading.Lock()  # 通信は1つずつ
+        self.sync_error = None
         self.today = date.today()
         self.streak_base = core.goal_streak_before(self.config, self.today)
 
         self.root = tk.Tk()
         self.root.title("WorkMonitor")
         self.root.resizable(False, False)
-        self.dark = windows_uses_dark_mode()
-        sv_ttk.set_theme("dark" if self.dark else "light")
-        self._setup_fonts()
-        self.sub_color = "#9aa1ad" if self.dark else "#6b7280"
+        self._apply_theme()
         self.wrap = int(560 * self.root.winfo_fpixels("1i") / 96)  # 説明文の折り返し幅
-        self.bg = ttk.Style().lookup("TFrame", "background") or ("#1c1c1c" if self.dark else "#fafafa")
 
         self.icon_photo = ImageTk.PhotoImage(app_icon.make_image(64))
         self.root.iconphoto(True, self.icon_photo)
@@ -507,6 +652,34 @@ class App:
         # 通知はタスクトレイの準備ができてから
         self.root.after(5000, self._check_weekly)
         self.root.after(8000, self._scheduled_update_check)
+        self.root.after(10000, lambda: self._scheduled_sync(days=7))  # 起動時はオフラインだった分も送る
+
+    # ---- テーマ ----
+    def _theme_is_dark(self):
+        theme = self.config.get("theme", "system")
+        return windows_uses_dark_mode() if theme == "system" else theme == "dark"
+
+    def _apply_theme(self):
+        self.dark = self._theme_is_dark()
+        sv_ttk.set_theme("dark" if self.dark else "light")
+        self._setup_fonts()
+        self.sub_color = "#9aa1ad" if self.dark else "#6b7280"
+        self.bg = ttk.Style().lookup("TFrame", "background") or ("#1c1c1c" if self.dark else "#fafafa")
+
+    def _rebuild(self):
+        """テーマが変わったら画面を作り直す（色を直接指定している部品があるため）"""
+        self._apply_theme()
+        self.f_update.destroy()
+        self.f_main.destroy()
+        self._build()
+        self._cats_key = None
+        if self.update_info:
+            self._on_update_result(self.update_info, False)
+        dark_title_bar(self.root, self.dark)
+
+    def _toggle_theme(self):
+        self.config["theme"] = "light" if self.dark else "dark"
+        self.apply_config(self.config)
 
     def _setup_fonts(self):
         # sv_ttk のフォントを日本語が読みやすいものに
@@ -532,6 +705,8 @@ class App:
         self.v_top = tk.BooleanVar(value=self.config["always_on_top"])
         ttk.Checkbutton(top, text="最前面", variable=self.v_top, style="Switch.TCheckbutton",
                         command=self._toggle_top).pack(side="right")
+        ttk.Button(top, text="☀ ライト" if self.dark else "🌙 ダーク", command=self._toggle_theme) \
+            .pack(side="right", padx=(0, 10))
 
         self.l_time = ttk.Label(f, text="0:00:00", font=("Segoe UI", 38, "bold"))
         self.l_time.pack(anchor="w", pady=(2, 0))
@@ -580,6 +755,9 @@ class App:
 
         self.l_discord = ttk.Label(f, text="", foreground=self.sub_color, font=BODY_FONT)
         self.l_discord.pack(anchor="w", pady=(12, 0))
+        self.l_cloud = ttk.Label(f, text="", foreground=self.sub_color, font=BODY_FONT, cursor="hand2")
+        self.l_cloud.pack(anchor="w", pady=(2, 0))
+        self.l_cloud.bind("<Button-1>", lambda e: self.open_settings(tab=4))
 
     # ---- 状態の描画 ----
     def _state_view(self):
@@ -659,7 +837,9 @@ class App:
     def tick(self):
         while not self.events.empty():
             ev = self.events.get()
-            if isinstance(ev, tuple) and ev[0] == "update":
+            if callable(ev):   # 別スレッドの処理が終わったあとの続き
+                ev()
+            elif isinstance(ev, tuple) and ev[0] == "update":
                 self._on_update_result(ev[1], ev[2])
             elif isinstance(ev, tuple) and ev[0] == "check_update":
                 self.show()
@@ -684,6 +864,7 @@ class App:
         self.c_dot.delete("all")
         self.c_dot.create_oval(1, 1, 13, 13, fill=color, outline="")
         self.l_discord.configure(text=f"Discord: {m.discord_status}")
+        self.l_cloud.configure(text=f"アカウント: {self.sync_text()}")
         self._draw_categories()
         progress = self._update_goal(m.today_sec)
         self.overlay.update(fmt_hms(m.today_sec), color, line2, progress)
@@ -773,6 +954,48 @@ class App:
                 messagebox.showinfo("アップデート", f"最新のバージョン（{core.APP_VERSION}）です。\n"
                                     "（インターネットにつながっていない場合も、こう表示されます）", parent=parent)
 
+    # ---- アカウント・同期 ----
+    def run_cloud(self, fn, done=None):
+        """通信を別スレッドで実行し、done(結果, エラー文) を画面のスレッドで呼ぶ"""
+        def worker():
+            with self.cloud_lock:
+                try:
+                    result, err = fn(), None
+                except cloud.CloudError as e:
+                    result, err = None, str(e)
+                except Exception as e:  # 想定外でもアプリは落とさない
+                    result, err = None, f"エラーが起きました: {e}"
+            if done:
+                self.events.put(lambda: done(result, err))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def sync_now(self, full=False, days=None, done=None):
+        if not self.cloud.logged_in:
+            return
+        days = days or (cloud.FULL_SYNC_DAYS if full else 2)
+        cfg = copy.deepcopy(self.config)
+        today_by_app = dict(self.monitor.today_by_app)
+        self.run_cloud(lambda: self.cloud.sync(cfg, today_by_app, days),
+                       done or (lambda _r, err: setattr(self, "sync_error", err)))
+
+    def _scheduled_sync(self, days=2):
+        if self.config.get("cloud_sync", True):
+            self.sync_now(days=days)
+        self.root.after(SYNC_INTERVAL_MS, self._scheduled_sync)
+
+    def sync_text(self):
+        c = self.cloud
+        if not c.logged_in:
+            return "ログインしていません（クリックで設定）"
+        if self.sync_error:
+            return f"⚠ {self.sync_error}"
+        if not self.config.get("cloud_sync", True):
+            return f"{c.email}（同期オフ）"
+        if c.last_sync:
+            t = time.strftime("%H:%M", time.localtime(c.last_sync))
+            return f"{c.email}・{t} に同期"
+        return f"{c.email}・同期待ち"
+
     def _notify(self, text, title="WorkMonitor"):
         if self.tray:
             try:
@@ -834,6 +1057,8 @@ class App:
         core.save_config(cfg)
         self.config = cfg
         self.monitor.apply_config(cfg)
+        if self._theme_is_dark() != self.dark:
+            self._rebuild()
         self._cats_key = None  # カテゴリ設定が変わったかもしれないので描き直す
         # 目標やアプリ別ルールが変わると過去の達成状況も変わるので数え直す
         self.streak_base = core.goal_streak_before(cfg, self.today)
