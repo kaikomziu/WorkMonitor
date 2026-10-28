@@ -13,7 +13,7 @@ const PERMISSIONS = {
 const STATUS = { pending: ['審査待ち', 'wait'], reviewing: ['審査中', 'wait'], approved: ['✓ 公開', 'ok'], rejected: ['✗ 不合格', 'ng'] };
 const ERRORS = {
   'wm:auth': 'ログインしてください。',
-  'wm:terms': '新しい利用規約への同意が必要です。ページを読み込み直してください。',
+  'wm:terms': '新しい利用規約への同意を確認できませんでした。一度ログアウトして、ログインし直してください。',
   'wm:agree': '利用規約 第8条への同意が必要です。',
   'wm:name': 'ファイル名は「英小文字・数字・_・- で2〜40文字」+「.py か .zip」にしてください。',
   'wm:size': 'ファイルが大きすぎます（512KB まで）。',
@@ -210,8 +210,13 @@ $('sub-form').onsubmit = async (e) => {
   $('sub-btn').disabled = true;
   subMsg('送信しています…');
   try {
-    const { error } = await sb.rpc('wm_mod_submit', { p_file_name: f.name, p_file_b64: await toBase64(f), p_agreed: true,
-                                                      p_changes: $('sub-changes').value.trim() });
+    const args = { p_file_name: f.name, p_file_b64: await toBase64(f), p_agreed: true, p_changes: $('sub-changes').value.trim() };
+    let { error } = await sb.rpc('wm_mod_submit', args);
+    if (error && String(error.message).includes('wm:terms')) {
+      // 同意する前に作られたログインの鍵（JWT）には同意が入っていないので、作り直してもう一度送る
+      await sb.auth.refreshSession();
+      ({ error } = await sb.rpc('wm_mod_submit', args));
+    }
     if (error) throw error;
     const wasUpdate = !!updateTarget;
     $('sub-form').reset();

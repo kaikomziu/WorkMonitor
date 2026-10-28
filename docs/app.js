@@ -110,6 +110,8 @@ async function agreeToTerms() {
     const { data, error } = await sb.auth.updateUser({ data: { terms_version: WM.termsVersion } });
     if (error) throw error;
     session.user = data.user;
+    // ログインの鍵（JWT）にも同意を入れるため作り直す（サーバーは鍵の中の版を見る）
+    try { await sb.auth.refreshSession(); } catch (e) { /* 失敗しても1時間以内に自動で作り直される */ }
     authMode = 'login';
     showDashboard();   // USER_UPDATED でも呼ばれるが、二重に動かないようにしてある
   } catch (err) {
