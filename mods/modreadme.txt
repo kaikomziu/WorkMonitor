@@ -229,3 +229,46 @@ WorkMonitor の起動時（または MOD をオンにしたとき）に呼ばれ
       - mods フォルダから、その MOD を消す（または名前の先頭に _ を付ける）
 
   質問や不具合の報告: https://github.com/kaikomziu/WorkMonitor/issues
+
+
+--------------------------------------------------------------
+ 12. 公式サイトへの投稿
+--------------------------------------------------------------
+
+  作った MOD は、公式サイトの「MOD」ページから投稿できます。
+    https://kaikomziu.github.io/WorkMonitor/mods.html
+  WorkMonitor のアカウントでログインして、ファイル（.py か .zip）を選んで投稿します。
+  10〜20 分ほどで自動審査が終わり、合格すると GitHub に置かれて、
+  誰でも公式サイトからダウンロードできるようになります。
+
+  投稿のきまり
+    ・ファイル名が MOD の名前になります。英小文字・数字・_・- で 2〜40 文字にしてください
+      （例: my_timer.py / my_timer.zip。zip の中のフォルダ名も my_timer にします）
+    ・MOD_INFO に name・version・author・description を書いてください
+      version は「1.0.0」のような数字と点の形です。更新するときは大きくしてください
+    ・同じ名前の MOD を更新できるのは、最初に公開した人だけです
+    ・zip に入れられるのは .py .txt .md .json .csv .png .jpg .gif .ico .wav だけです
+
+  自動審査で不合格になるもの（投稿された MOD は実行せず、書き方を調べます）
+    ・ほかのプログラムの起動（subprocess、os.system、os.startfile など）
+    ・Windows の機能やメモリの直接操作（ctypes、winreg など）
+    ・文字から組み立てたコードの実行（eval、exec、compile、__import__、importlib、pickle など）
+    ・ファイルやフォルダの削除（os.remove、shutil.rmtree、Path.unlink など）
+    ・キー入力・マウスの監視や操作（keyboard、pynput など）
+    ・通信の仕組みの直接利用（socket など。通信は urllib.request を使ってください）
+    ・パスワード・トークン・鍵などが保存された場所を指す文字（ブラウザの Login Data、
+      Discord の Local Storage、session.bin など）
+    ・WorkMonitor の内部の利用（api.app、import core / cloud など）と、
+      ほかの物の非公開の値（api._loader のような _ で始まる名前。自分のクラスの self._x はよい）
+    ・getattr(x, 名前の変数) のように、名前を組み立てて使う書き方
+    ・見えない文字、1行 2000 文字を超える行、5000 文字を超える文字列
+    ・tkinter.Tk() の作成（ウィンドウは tkinter.Toplevel(api.root) で作ってください）
+  通信・ファイルの読み書き・スレッドなどは使えますが、公式サイトの一覧に
+  「この MOD が行うこと」として表示されます。
+
+  自分のパソコンで投稿前に試すには（Python が必要）:
+    python tools/mod_review.py my_timer.py
+  （WorkMonitor のソースコード https://github.com/kaikomziu/WorkMonitor にあります）
+
+  投稿した MOD の利用と、公開された MOD の利用については、利用規約 第8条を確認してください。
+  MOD の利用は自己責任で、運営者は MOD による損害の責任を負いません。

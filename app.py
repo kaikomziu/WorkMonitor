@@ -830,7 +830,7 @@ class SettingsDialog(tk.Toplevel):
         loader = self.app.earo
         f = self._page("Mods", f"{earo.LOADER_NAME}（MOD ローダー）で、Python で書いた MOD を読み込んで機能を足せます。"
                                ".py ファイル・フォルダ・.zip をこの画面かメイン画面にドラッグ＆ドロップすると追加できます。"
-                               "MOD のオン・オフはすぐに反映されます。")
+                               "公式サイトの「MOD」で、みんなが作った MOD を探したり投稿したりできます。")
         ttk.Label(f, text=jp("⚠ MOD はこのアプリと同じ権限で動くプログラムです（ファイルの読み書きや通信もできます）。"
                              "信頼できる人が作ったものだけ入れてください。"),
                   foreground=EXCLUDED_COLOR, wraplength=self.app.wrap, justify="left").pack(anchor="w", pady=(0, 6))
@@ -881,9 +881,11 @@ class SettingsDialog(tk.Toplevel):
 
         b = ttk.Frame(f)
         b.pack(fill="x", pady=(10, 0))
-        ttk.Button(b, text="ファイルから追加…", command=self._pick_mods).pack(side="left")
-        ttk.Button(b, text="MOD フォルダを開く", command=self._open_mods_dir).pack(side="left", padx=8)
-        ttk.Button(b, text="作り方（modreadme.txt）", command=self._open_mod_readme).pack(side="left")
+        ttk.Button(b, text="🌐 MOD を探す", style="Accent.TButton",
+                   command=lambda: webbrowser.open(core.MODS_URL)).pack(side="left")
+        ttk.Button(b, text="ファイルから追加…", command=self._pick_mods).pack(side="left", padx=8)
+        ttk.Button(b, text="MOD フォルダを開く", command=self._open_mods_dir).pack(side="left")
+        ttk.Button(b, text="作り方", command=self._open_mod_readme).pack(side="left", padx=8)
         ttk.Button(b, text="すべて再読み込み", command=loader.reload_all).pack(side="right")
 
         self._mod_log_key = None

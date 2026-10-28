@@ -43,6 +43,21 @@ def setup(api):
 
 > MOD はアプリと同じ権限で動くプログラムです。信頼できる人が作ったものだけ入れてください。
 
+### MOD の配布（公式サイト）
+
+[公式サイトの MOD ページ](https://kaikomziu.github.io/WorkMonitor/mods.html)で、MOD を探してダウンロードしたり、投稿したりできます。
+
+1. ログインした利用者が `.py` / `.zip` を投稿すると、Supabase の `wm_mod_submissions` に入ります（審査待ちは 3 件・1 日 10 件まで）
+2. GitHub Actions（[mod-review.yml](.github/workflows/mod-review.yml)、10 分ごと）が合言葉 `MOD_REVIEW_SECRET` で受け取り、
+   [tools/mod_review.py](tools/mod_review.py) で自動審査します。投稿されたファイルは**実行せず**、構文を調べるだけです
+   - 形式（大きさ、zip のパス・ファイルの種類）、MOD_INFO と setup の有無
+   - 危険な書き方（ほかのプログラムの起動、ctypes、eval / exec、ファイルの削除、トークンやパスワードの保存場所、`api.app` など）と bandit の重大な指摘
+   - 通信・ファイルの書き込みなどは「この MOD が行うこと」として一覧に表示
+3. 合格した MOD は `docs/mods/files/<名前>/<版>/` に置かれ、`docs/mods/index.json` に載って、そのままサイトからダウンロードできます
+4. 同じ名前の MOD を更新できるのは最初に公開した人だけです
+
+運営者が手元から公開するとき: `python tools/mod_registry.py add <ファイル>`（作例の hello / pomodoro はこれで公開しています）
+
 ## ダウンロード
 
 [ウェブサイト](https://kaikomziu.github.io/WorkMonitor/#download) か [Releases](../../releases/latest) から、どちらかを選んでください。
@@ -148,6 +163,7 @@ python monitor.py dashboard  :: ダッシュボードを開く
 | `earo.py` | MOD ローダー（Earo）と MOD に渡す API |
 | `dnd.py` | ウィンドウへのファイルのドラッグ＆ドロップ |
 | `mods/` | MOD の作り方（`modreadme.txt`）と作例 |
+| `tools/` | 投稿された MOD の自動審査（`mod_review.py`）と公開（`mod_registry.py`） |
 | `monitor.py` | コマンドライン版 |
 | `app_icon.py` | アイコンの描画 |
 | `installer.iss` | インストーラー（Inno Setup） |

@@ -1,0 +1,51 @@
+# 公式サイトに投稿された MOD を自動で審査し、合格したものを docs/mods に置いて公開する
+# 投稿は Supabase に入る。合言葉（MOD_REVIEW_SECRET）を使ってここから受け取り、結果を書き戻す
+name: MOD Review
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mod-review
+  cancel-in-progress: false
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 検査ツール
+        run: python -m pip install --quiet "bandit==1.7.10"
+
+      # 投稿されたファイルは実行しない（構文を調べるだけ）
+      - name: 審査
+        env:
+          MOD_REVIEW_SECRET: ${{ secrets.MOD_REVIEW_SECRET }}
+        run: python tools/mod_registry.py review "$RUNNER_TEMP/mod-results.json"
+
+      - name: 合格した MOD を公開
+        run: |
+          if [ -n "$(git status --porcelain docs/mods)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs/mods
+            git commit -q -m "MOD を公開（自動審査で合格）"
+            git pull -q --rebase origin main
+            git push -q origin HEAD:main
+          fi
+
+      - name: 審査結果を記録
+        env:
+          MOD_REVIEW_SECRET: ${{ secrets.MOD_REVIEW_SECRET }}
+        run: python tools/mod_registry.py finish "$RUNNER_TEMP/mod-results.json"

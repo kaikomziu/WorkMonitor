@@ -26,7 +26,8 @@ WEBSITE_URL = "https://kaikomziu.github.io/WorkMonitor/"
 TERMS_URL = WEBSITE_URL + "terms.html"
 PRIVACY_URL = WEBSITE_URL + "privacy.html"
 # 利用規約・プライバシーポリシーの版（変えると、ログイン時にもう一度同意をお願いする）。docs/common.js と同じ値
-TERMS_VERSION = "2026-10-27"
+TERMS_VERSION = "2026-10-29"
+MODS_URL = WEBSITE_URL + "mods.html"
 
 # 配布する前に、自分で作った Discord アプリの Application ID をここに入れておくと
 # 利用者は設定なしで Discord 表示が使える（空なら利用者が設定画面で入力する）

@@ -60,7 +60,7 @@ a { color: var(--accent); }
 /* フォーム */
 label.field { display: block; margin: 12px 0; font-size: 14px; }
 label.field span { display: block; margin-bottom: 6px; color: var(--sub); }
-input[type=email], input[type=password], input[type=text], select {
+input[type=email], input[type=password], input[type=text], input[type=search], input[type=file], select {
   font: inherit; width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
   background: var(--bg); color: var(--text); }
 input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }

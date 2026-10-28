@@ -1,0 +1,51 @@
+{
+ "updated": "2026-10-28T15:13:56Z",
+ "mods": [
+  {
+   "id": "hello",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/hello/1.0.0/hello.py",
+     "size": 932,
+     "sha256": "42dc3fad0f1606456150feef122814fe8fb9c479a7374395bf4a721c933135c9",
+     "published": "2026-10-28T15:13:56Z",
+     "permissions": [
+      "notify"
+     ],
+     "api": 1,
+     "source_sha256": "42dc3fad0f1606456150feef122814fe8fb9c479a7374395bf4a721c933135c9"
+    }
+   ],
+   "name": "Hello MOD",
+   "author": "かるわか",
+   "description": "作業中・休憩中が切り替わるたびにログを書き、1日の目標を達成したらお祝いします。",
+   "version": "1.0.0",
+   "updated": "2026-10-28T15:13:56Z"
+  },
+  {
+   "id": "pomodoro",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/pomodoro/1.0.0/pomodoro.py",
+     "size": 3096,
+     "sha256": "b16d2a55de79ec6d6a0cf7f0d1f83c12b54366b8f001f50bc13df7cd5ab16942",
+     "published": "2026-10-28T15:13:56Z",
+     "permissions": [
+      "notify",
+      "overlay",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "b16d2a55de79ec6d6a0cf7f0d1f83c12b54366b8f001f50bc13df7cd5ab16942"
+    }
+   ],
+   "name": "作業ポモドーロ",
+   "author": "かるわか",
+   "description": "作業している時間だけ進むポモドーロタイマーです。25分たまると通知して休憩をすすめます。メイン画面とオーバーレイに残り時間を表示します。",
+   "version": "1.0.0",
+   "updated": "2026-10-28T15:13:56Z"
+  }
+ ]
+}

@@ -21,7 +21,7 @@ const AUTH_TEXT = {
   consent:  { title: '利用規約・プライバシーポリシー', submit: '同意して続ける', desc: '続けるには、利用規約とプライバシーポリシーをお読みのうえ、同意してください。' },
 };
 // 同意した版（サーバー側で日時と一緒に記録される）
-const consented = () => !!session && (session.user.user_metadata || {}).terms_version === WM.termsVersion;
+const consented = () => !!session && ((session.user.user_metadata || {}).terms_version || '') >= WM.termsVersion;  // 版は日付なので新しい版にも対応
 const ERRORS = {
   'invalid login credentials': 'メールアドレスかパスワードが違います。',
   'email not confirmed': 'メールアドレスの確認が済んでいません。届いた確認メールのリンクを開いてください。',

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOD - WorkMonitor</title>
+<meta name="description" content="WorkMonitor の MOD（追加機能）を探してダウンロードしたり、自分で作った MOD を投稿したりできます。">
+<link rel="icon" href="icon.png">
+<link rel="stylesheet" href="style.css">
+<!-- 読み込んでよい場所・通信してよい相手を制限する -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://wbzfrhdhfmqxdjheiutl.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'">
+<meta name="referrer" content="no-referrer">
+<script src="common.js"></script>
+<!-- integrity: CDN のファイルが書き換えられていたら読み込まない（SRI） -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"
+        integrity="sha256-hZaWX+kY5lZgChtWjToWj1wNPSKmAIhrtvRKZVXbAec=" crossorigin="anonymous"></script>
+<style>
+  .head { padding: 40px 0 8px; }
+  .head h1 { font-size: clamp(26px, 4vw, 36px); margin: 0 0 8px; }
+  .head p { color: var(--sub); margin: 0; }
+  .warn { border-color: color-mix(in srgb, #e2a03f 55%, var(--line)); background: color-mix(in srgb, #e2a03f 8%, var(--card)); margin: 20px 0; font-size: 14px; }
+  .warn b { color: #b9771a; }
+  :root[data-theme="dark"] .warn b { color: #e8b25e; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .warn b { color: #e8b25e; } }
+  section { padding: 24px 0; }
+  section h2 { font-size: 22px; margin: 0 0 6px; }
+  section .intro { color: var(--sub); margin: 0 0 16px; }
+  .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  .toolbar input { flex: 1 1 260px; }
+  .mods { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 14px; }
+  .mod { display: flex; flex-direction: column; gap: 8px; }
+  .mod h3 { margin: 0; font-size: 18px; overflow-wrap: anywhere; }
+  .mod .by { color: var(--sub); font-size: 13px; }
+  .mod .desc { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+  .mod .perms { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-size: 12px; color: var(--sub); border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; white-space: nowrap; }
+  .tag.ok { color: var(--up); border-color: color-mix(in srgb, var(--up) 45%, var(--line)); }
+  .tag.ng { color: var(--down); border-color: color-mix(in srgb, var(--down) 45%, var(--line)); }
+  .tag.wait { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+  .mod .foot { margin-top: auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .mod .hash { font-family: Consolas, monospace; font-size: 11px; color: var(--sub); overflow-wrap: anywhere; }
+  .mod details { font-size: 13px; color: var(--sub); }
+  .mod details a { font-family: Consolas, monospace; }
+  .empty { text-align: center; padding: 40px 16px; color: var(--sub); }
+  .steps { padding-left: 1.3em; margin: 0; }
+  .steps li { margin: 4px 0; }
+  .hidden { display: none !important; }
+  .check { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; margin: 10px 0; }
+  .check input { margin-top: 5px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--sub); font-weight: 500; }
+  .scroll { overflow-x: auto; }
+  .findings { margin: 6px 0 0; padding-left: 1.2em; font-size: 13px; }
+  .findings li.block { color: var(--down); }
+  .findings li.note { color: var(--sub); }
+  .submit-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+  @media (max-width: 820px) { .submit-grid { grid-template-columns: minmax(0, 1fr); } }
+  .rules { font-size: 14px; color: var(--sub); padding-left: 1.2em; margin: 8px 0 0; }
+  code { background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; font-size: 13px; }
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div class="wrap">
+    <a class="logo" href="./"><img src="icon.png" alt="">WorkMonitor</a>
+    <div class="spacer"></div>
+    <div class="links">
+      <a class="text hide-sm" href="#find">MOD を探す</a>
+      <a class="text hide-sm" href="#submit">投稿する</a>
+      <button class="icon-btn" data-theme-toggle></button>
+      <a class="btn primary" href="app.html" id="nav-login">ログイン</a>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div class="head">
+    <h1>MOD</h1>
+    <p>WorkMonitor に機能を足す MOD を探してダウンロードしたり、自分で作った MOD を投稿したりできます。</p>
+  </div>
+
+  <div class="card warn" role="note">
+    <b>⚠ MOD の利用は自己責任です。</b>
+    ここにある MOD は利用者が作って投稿したもので、運営者が作ったものではありません。公開前に自動審査で危険な書き方がないかを調べていますが、
+    自動審査ですべての問題を見つけられるわけではなく、安全や動作は保証できません。MOD はアプリと同じ権限で動くプログラムです。
+    内容を確認し、信頼できるものだけ入れてください。MOD の利用で生じた損害について、運営者は責任を負いません
+    （<a href="terms.html#mods">利用規約 第8条</a>）。ダウンロードした時点で、この内容に同意したものとみなします。
+  </div>
+
+  <section id="find">
+    <h2>MOD を探す</h2>
+    <div class="toolbar">
+      <input type="search" id="search" placeholder="名前・作者・説明で探す" aria-label="MOD を探す">
+      <span class="sub small" id="count"></span>
+    </div>
+    <div class="mods" id="mods"><div class="card empty">読み込んでいます…</div></div>
+  </section>
+
+  <section>
+    <h2>入れ方</h2>
+    <div class="card">
+      <ol class="steps">
+        <li>WorkMonitor を <b>1.6.0 以降</b>にします（<a href="./#download">ダウンロード</a>）。</li>
+        <li>上の一覧から MOD をダウンロードします（<code>.py</code> か <code>.zip</code>）。</li>
+        <li>ダウンロードしたファイルを、WorkMonitor のメイン画面か「設定 → Mods」に<b>ドラッグ＆ドロップ</b>します。</li>
+        <li>確認が出たら「はい」を押すと、すぐに動き始めます。オン・オフや削除は「設定 → Mods」でできます。</li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="submit">
+    <h2>MOD を投稿する</h2>
+    <p class="intro">投稿した MOD は自動で審査され、問題がなければ <a href="https://github.com/kaikomziu/WorkMonitor/tree/main/docs/mods">GitHub</a> に置かれて、この一覧からダウンロードできるようになります（10〜20 分ほどかかります）。</p>
+    <div class="submit-grid">
+      <div class="card">
+        <div id="sub-login">
+          <p>投稿するには、WorkMonitor のアカウントでログインしてください。</p>
+          <a class="btn primary" href="app.html">ログイン・登録</a>
+          <p class="sub small">ログインしたあと、このページ（上のメニューの「MOD」）に戻ってください。</p>
+        </div>
+        <div id="sub-consent" class="hidden">
+          <p><b>利用規約が新しくなりました。</b>投稿するには、新しい<a href="terms.html" target="_blank" rel="noopener">利用規約</a>と<a href="privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>への同意が必要です。</p>
+          <label class="check"><input type="checkbox" id="consent-agree"> <span>利用規約とプライバシーポリシーに同意する</span></label>
+          <button class="btn primary" id="consent-btn">同意する</button>
+        </div>
+        <form id="sub-form" class="hidden">
+          <p class="sub small" id="sub-user"></p>
+          <label class="field"><span>MOD のファイル（<code>.py</code> か <code>.zip</code>、512KB まで）</span>
+            <input type="file" id="sub-file" accept=".py,.zip" required></label>
+          <div class="sub small" id="sub-file-info"></div>
+          <label class="check"><input type="checkbox" id="sub-agree"> <span><a href="terms.html#mods" target="_blank" rel="noopener">利用規約 第8条（MOD）</a>に同意し、この MOD を公開・配布する権利があることを確認しました。MOD は誰でも見られる形で公開されます。</span></label>
+          <button class="btn primary" type="submit" id="sub-btn">投稿する</button>
+          <div class="msg" id="sub-msg" role="status"></div>
+        </form>
+      </div>
+      <div class="card">
+        <b>投稿のきまり</b>
+        <ul class="rules">
+          <li>ファイル名がそのまま MOD の名前になります。<b>英小文字・数字・<code>_</code>・<code>-</code> で 2〜40 文字</b>にしてください（例: <code>my_timer.py</code>）。</li>
+          <li><code>MOD_INFO</code> に name・version・author・description を書いてください。author と説明は公開されます。</li>
+          <li>同じ名前の MOD を更新できるのは、最初に公開した人だけです。更新するときは version を上げてください。</li>
+          <li>ほかのプログラムの起動、組み立てたコードの実行、ファイルの削除、パスワードやトークンの読み取り、<code>api.app</code> の利用などは、自動審査で不合格になります。詳しくは <a href="https://github.com/kaikomziu/WorkMonitor/blob/main/mods/modreadme.txt">modreadme.txt</a> の「12. 公式サイトへの投稿」を見てください。</li>
+          <li>通信やファイルの書き込みなどをする MOD は、その内容が一覧に表示されます。</li>
+          <li>審査中は 3 件まで、1 日に 10 件まで投稿できます。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card hidden" id="mine" style="margin-top:14px">
+      <b>あなたの投稿</b>
+      <div class="scroll"><table>
+        <thead><tr><th>ファイル</th><th>投稿日時</th><th>状態</th><th>結果</th><th></th></tr></thead>
+        <tbody id="mine-rows"></tbody>
+      </table></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>WorkMonitor ・ 運営：かるわか</span>
+    <span><a href="terms.html">利用規約</a> ・ <a href="privacy.html">プライバシーポリシー</a> ・ <a href="https://github.com/kaikomziu/WorkMonitor">GitHub</a></span>
+  </div>
+</footer>
+
+<script src="mods.js"></script>
+</body>
+</html>

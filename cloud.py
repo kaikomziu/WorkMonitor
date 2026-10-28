@@ -178,7 +178,7 @@ class Cloud:
         self.session = None
         self._set_tokens(res)
         meta = (res.get("user") or {}).get("user_metadata") or {}
-        if meta.get("terms_version") != core.TERMS_VERSION:
+        if (meta.get("terms_version") or "") < core.TERMS_VERSION:   # 版は日付なので、新しい版に同意済みならそのまま
             if not agreed:
                 try:
                     _http("POST", "/auth/v1/logout", {}, token=res["access_token"])

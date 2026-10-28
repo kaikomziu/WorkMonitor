@@ -1,2 +1,5 @@
 # バッチファイルは CRLF でないと cmd が日本語を正しく読めない
 *.bat text eol=crlf
+# 公開した MOD は改行も含めてそのまま配る（SHA-256 が変わらないように）
+docs/mods/files/** -text
+docs/mods/index.json -text
