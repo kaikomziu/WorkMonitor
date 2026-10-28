@@ -3,6 +3,7 @@
   python tools/mod_registry.py review <結果ファイル>   投稿を受け取って審査し、合格したものを docs/mods に置く
   python tools/mod_registry.py finish <結果ファイル>   （公開を push したあと）審査結果をサーバーに書く
   python tools/mod_registry.py add <ファイル>          運営者が手元から MOD を公開する（作例など）
+  python tools/mod_registry.py remove <MOD の名前>     運営者が MOD の公開をやめる
 
 投稿の中身・利用者の情報は公開されるログ（Actions のログ）に出さない。
 """
@@ -198,6 +199,22 @@ def cmd_add(paths):
     save_index(index)
 
 
+def cmd_remove(mod_ids):
+    """運営者が公開をやめる（一覧から外し、ファイルも消す。名前は持ち主のまま残る）"""
+    import shutil
+    index = load_index()
+    for mod_id in mod_ids:
+        if not mod_review.MOD_ID.match(mod_id):
+            print(f"{mod_id}: MOD の名前の形ではありません")
+            continue
+        before = len(index["mods"])
+        index["mods"] = [m for m in index["mods"] if m["id"] != mod_id]
+        shutil.rmtree(os.path.join(MODS_DIR, "files", mod_id), ignore_errors=True)
+        print(f"{mod_id}: {'公開をやめました' if len(index['mods']) < before else '公開されていません'}")
+    save_index(index)
+
+
 if __name__ == "__main__":
     cmd, args = sys.argv[1], sys.argv[2:]
-    {"review": lambda: cmd_review(args[0]), "finish": lambda: cmd_finish(args[0]), "add": lambda: cmd_add(args)}[cmd]()
+    {"review": lambda: cmd_review(args[0]), "finish": lambda: cmd_finish(args[0]), "add": lambda: cmd_add(args),
+     "remove": lambda: cmd_remove(args)}[cmd]()
