@@ -19,6 +19,29 @@
 - **オーバーレイ**：画面の端に小さなタイマーを常に表示します（透明度・大きさ・クリック透過を設定可能）
 - **Discord 連携**：プロフィールに「作業中 1:23:45 経過」のように表示します（Rich Presence）
 - **タスクトレイ常駐**・Windows 起動時の自動起動・メイン画面の最前面表示
+- **MOD（Earo）**：Python で書いた MOD で機能を足せます。ファイルを画面にドラッグ＆ドロップするだけで追加できます
+
+## MOD（Earo）
+
+WorkMonitor には MOD ローダー **Earo** が入っています。MOD はふつうの Python のプログラムで、
+`setup(api)` を書くとアプリの起動時に呼ばれ、イベント（作業中になった、目標を達成した など）を受け取ったり、
+メイン画面に枠を足したり、オーバーレイや Discord の文字を変えたりできます。
+
+```python
+MOD_INFO = {"name": "はじめての MOD", "version": "1.0.0", "author": "あなた"}
+
+def setup(api):
+    @api.on("goal_reached")
+    def done(goal_min, streak):
+        api.notify(f"{streak} 日連続で達成！")
+```
+
+- `.py` ファイル・フォルダ（`__init__.py` 入り）・`.zip` をメイン画面か「設定 → Mods」にドラッグ＆ドロップすると追加されます
+- 「設定 → Mods」で MOD ごとのオン・オフ、再読み込み、削除、エラーのログの確認ができます
+- MOD の中で例外が起きてもアプリは止まらず、エラーが続いた MOD は自動で止まります。`--no-mods` で起動すると MOD を読み込みません
+- 作り方は [mods/modreadme.txt](mods/modreadme.txt)、作例は [mods/examples](mods/examples)（ポモドーロタイマーなど）にあります
+
+> MOD はアプリと同じ権限で動くプログラムです。信頼できる人が作ったものだけ入れてください。
 
 ## ダウンロード
 
@@ -71,6 +94,8 @@
 | `config.json` | 設定 |
 | `apps.json` | これまでに使ったアプリの一覧（アプリ別設定の候補） |
 | `session.bin` | ログイン情報（暗号化済み。ログアウトすると消えます） |
+| `mods\` | MOD の置き場所（`modreadme.txt` と作例もここにコピーされます） |
+| `mod_data\` | MOD が保存したデータ |
 
 外部との通信は次の3つだけです。
 
@@ -120,6 +145,9 @@ python monitor.py dashboard  :: ダッシュボードを開く
 | `dashboard.py` | グラフ表示用の HTML の生成 |
 | `discord_rpc.py` | Discord Rich Presence（外部ライブラリを使わない IPC 実装） |
 | `updater.py` | GitHub Releases での新しいバージョンの確認 |
+| `earo.py` | MOD ローダー（Earo）と MOD に渡す API |
+| `dnd.py` | ウィンドウへのファイルのドラッグ＆ドロップ |
+| `mods/` | MOD の作り方（`modreadme.txt`）と作例 |
 | `monitor.py` | コマンドライン版 |
 | `app_icon.py` | アイコンの描画 |
 | `installer.iss` | インストーラー（Inno Setup） |

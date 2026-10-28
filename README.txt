@@ -16,6 +16,7 @@ WorkMonitor - 作業時間を記録するツール（Windows 10/11）
 ・Discord のプロフィールに「作業中 1:23:45 経過」のように表示できます。
   アプリごとに「プログラミング中」「お絵かき中」など文言を変えられます。
 ・新しいバージョンが出たらお知らせします。
+・MOD（Python で書いた追加機能）を入れられます（MOD ローダー「Earo」）。
 
 ■ 使い方
 1. インストーラー版はスタートメニューの「WorkMonitor」から、
@@ -34,6 +35,13 @@ WorkMonitor - 作業時間を記録するツール（Windows 10/11）
 ・オーバーレイ …… 表示／透明度／大きさ／アプリ名の表示／クリックの透過
 ・Discord …… 表示する／Application ID／アプリ名も表示する
 ・アカウント …… 登録／ログイン／同期のオン・オフ／ログアウト
+・Mods …… MOD の追加／オン・オフ／再読み込み／削除／エラーのログ
+
+■ MOD
+・.py ファイル・フォルダ・.zip の MOD を、メイン画面か「設定 → Mods」にドラッグ＆ドロップすると追加できます。
+・作り方は modreadme.txt（%APPDATA%\WorkMonitor\mods にもあります）を見てください。
+・MOD はこのアプリと同じ権限で動くプログラムです。信頼できる人が作ったものだけ入れてください。
+・MOD のせいで起動できなくなったら、WorkMonitor.exe --no-mods で起動すると MOD を読み込みません。
 
 ■ Discord に表示するには
 1. https://discord.com/developers/applications で「New Application」を作成

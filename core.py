@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from discord_rpc import DiscordPresence
 
 APP_NAME = "WorkMonitor"
-APP_VERSION = "1.5.0"
+APP_VERSION = "1.6.0"
 GITHUB_REPO = "kaikomziu/WorkMonitor"  # アップデート確認に使う
 WEBSITE_URL = "https://kaikomziu.github.io/WorkMonitor/"
 TERMS_URL = WEBSITE_URL + "terms.html"
@@ -65,6 +65,8 @@ DEFAULT_CONFIG = {
     "included_apps": [],          # exe 名（小文字）
     # キーは exe 名（小文字）。値は name / category / count / discord
     "app_rules": {},
+    # MOD（Earo）。enabled: MOD を読み込むか、active: MOD ごとのオン・オフ
+    "mods": {"enabled": True, "active": {}},
 }
 
 # よく使うアプリの表示名とカテゴリの初期値
@@ -159,7 +161,7 @@ def load_config():
         with open(CONFIG_PATH, encoding="utf-8") as f:
             saved = json.load(f)
         # 入れ子の設定は項目ごとに上書き（新しいバージョンで増えた項目に初期値を残す）
-        nested = {k: saved.pop(k, {}) for k in ("overlay", "notified")}
+        nested = {k: saved.pop(k, {}) for k in ("overlay", "notified", "mods")}
         config.update(saved)
         for k, v in nested.items():
             config[k].update(v)
@@ -421,6 +423,7 @@ class Monitor:
         self._stop = threading.Event()
         self._reset = threading.Event()   # 記録を削除したとき、記録中の分も捨てる
         self._thread = None
+        self.discord_filter = None        # MOD が Discord の表示を変える関数（監視スレッドから呼ぶ）
 
     @property
     def working(self):
@@ -484,10 +487,12 @@ class Monitor:
 
     def _discord_text(self, info):
         if info["discord"]:
-            return info["discord"]
-        if self.config.get("discord_show_app"):
-            return f"作業中: {info['name']}"
-        return "作業中"
+            text = info["discord"]
+        elif self.config.get("discord_show_app"):
+            text = f"作業中: {info['name']}"
+        else:
+            text = "作業中"
+        return self.discord_filter(text, info) if self.discord_filter else text
 
     def run(self):
         seg = None  # 現在の作業区間: dict(start, end, app, title)

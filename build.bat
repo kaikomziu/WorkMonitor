@@ -8,9 +8,11 @@ python -m PyInstaller --noconfirm --clean --onefile --windowed ^
   --name WorkMonitor --icon icon.ico ^
   --hidden-import pystray._win32 ^
   --collect-data sv_ttk ^
+  --add-data "mods\modreadme.txt;mods" --add-data "mods\examples;mods\examples" ^
   app.py || goto :error
 copy /y README.txt dist\ >nul
-powershell -NoProfile -Command "Compress-Archive -Path dist\WorkMonitor.exe, dist\README.txt -DestinationPath dist\WorkMonitor.zip -Force" || goto :error
+copy /y mods\modreadme.txt dist\ >nul
+powershell -NoProfile -Command "Compress-Archive -Path dist\WorkMonitor.exe, dist\README.txt, dist\modreadme.txt -DestinationPath dist\WorkMonitor.zip -Force" || goto :error
 echo.
 echo 完成: %~dp0dist\WorkMonitor.zip
 rem Inno Setup があればインストーラーも作る

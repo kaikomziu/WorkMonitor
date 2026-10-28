@@ -16,6 +16,7 @@ import tkinter as tk
 import tkinter.font as tkfont
 import webbrowser
 import winreg
+import zipfile
 from datetime import date
 from tkinter import messagebox, ttk
 
@@ -25,6 +26,8 @@ from PIL import ImageTk
 import app_icon
 import cloud
 import core
+import dnd
+import earo
 import updater
 from dashboard import build_dashboard
 from overlay import Overlay
@@ -41,6 +44,7 @@ EXCLUDED_COLOR = "#e2a03f"
 UPDATE_INTERVAL_MS = 24 * 60 * 60 * 1000  # アップデート確認の間隔（1日）
 SYNC_INTERVAL_MS = 5 * 60 * 1000           # クラウド同期の間隔（5分）
 THEMES = {"system": "Windows に合わせる", "light": "ライト", "dark": "ダーク"}
+MODS_TAB = 5                               # 設定画面の Mods タブの位置
 BODY_FONT = "SunValleyBodyFont"  # sv_ttk の本文フォント（入力欄もこれに揃える）
 
 
@@ -244,6 +248,7 @@ class SettingsDialog(tk.Toplevel):
         self._tab_overlay()
         self._tab_discord()
         self._tab_account()
+        self._tab_mods()
         self.nb.select(tab)
 
         b = ttk.Frame(outer)
@@ -252,6 +257,7 @@ class SettingsDialog(tk.Toplevel):
         ttk.Button(b, text="保存", style="Accent.TButton", command=self.save).pack(side="right", padx=8)
 
         dark_title_bar(self, app.dark)
+        dnd.enable(self, self.install_mods)
         self.bind("<Escape>", lambda e: self.cancel())
         self.grab_set()
         self.focus_set()
@@ -819,6 +825,211 @@ class SettingsDialog(tk.Toplevel):
                 self._acc_message("ログアウトしました。")
         self.app.run_cloud(self.app.cloud.sign_out, done)
 
+    # ---- Mods（Earo） ----
+    def _tab_mods(self):
+        loader = self.app.earo
+        f = self._page("Mods", f"{earo.LOADER_NAME}（MOD ローダー）で、Python で書いた MOD を読み込んで機能を足せます。"
+                               ".py ファイル・フォルダ・.zip をこの画面かメイン画面にドラッグ＆ドロップすると追加できます。"
+                               "MOD のオン・オフはすぐに反映されます。")
+        ttk.Label(f, text=jp("⚠ MOD はこのアプリと同じ権限で動くプログラムです（ファイルの読み書きや通信もできます）。"
+                             "信頼できる人が作ったものだけ入れてください。"),
+                  foreground=EXCLUDED_COLOR, wraplength=self.app.wrap, justify="left").pack(anchor="w", pady=(0, 6))
+        top = ttk.Frame(f)
+        top.pack(fill="x")
+        self.v_mods_on = tk.BooleanVar(value=loader.settings.get("enabled", True))
+        ttk.Checkbutton(top, text="MOD を読み込む", variable=self.v_mods_on, style="Switch.TCheckbutton",
+                        command=lambda: loader.set_enabled(self.v_mods_on.get()),
+                        state="disabled" if loader.safe_mode else "normal").pack(side="left")
+        ttk.Label(top, text=f"{earo.LOADER_NAME} {earo.LOADER_VERSION}", foreground=self.app.sub_color).pack(side="right")
+        if loader.safe_mode:
+            ttk.Label(f, text="セーフモード（--no-mods）で起動しているため、MOD を読み込んでいません。",
+                      foreground="#d9534f").pack(anchor="w", pady=(4, 0))
+
+        cols = ("name", "version", "author", "status")
+        tf = ttk.Frame(f)
+        tf.pack(fill="both", expand=True, pady=(8, 0))
+        self.mod_tree = ttk.Treeview(tf, columns=cols, show="headings", height=5, selectmode="browse")
+        for c, text, w in zip(cols, ("MOD", "バージョン", "作者", "状態"), (200, 80, 110, 150)):
+            self.mod_tree.heading(c, text=text)
+            self.mod_tree.column(c, width=w, anchor="w")
+        sb = ttk.Scrollbar(tf, orient="vertical", command=self.mod_tree.yview)
+        self.mod_tree.configure(yscrollcommand=sb.set)
+        self.mod_tree.pack(side="left", fill="both", expand=True)
+        sb.pack(side="right", fill="y")
+        self.mod_tree.bind("<<TreeviewSelect>>", lambda e: self._show_mod())
+
+        ed = ttk.LabelFrame(f, text="選んだ MOD", padding=12)
+        ed.pack(fill="x", pady=(10, 0))
+        self.l_mod = ttk.Label(ed, text="（一覧から選んでください。MOD がなければ下の「作り方」を見てください）",
+                               foreground=self.app.sub_color, wraplength=int(self.app.wrap * 0.95), justify="left")
+        self.l_mod.pack(anchor="w")
+        mb = ttk.Frame(ed)
+        mb.pack(fill="x", pady=(8, 0))
+        self.b_mod_toggle = ttk.Button(mb, text="オンにする", style="Accent.TButton", command=self._toggle_mod)
+        self.b_mod_toggle.pack(side="left")
+        self.b_mod_reload = ttk.Button(mb, text="再読み込み", command=self._reload_mod)
+        self.b_mod_reload.pack(side="left", padx=8)
+        self.b_mod_remove = ttk.Button(mb, text="削除…", command=self._remove_mod)
+        self.b_mod_remove.pack(side="right")
+        self.f_mod_actions = ttk.Frame(ed)
+        self.f_mod_actions.pack(fill="x")
+        self.t_mod_log = tk.Text(ed, height=5, width=60, wrap="char", relief="flat", font=BODY_FONT,
+                                 bg="#2b2b2b" if self.app.dark else "#ffffff",
+                                 fg="#d6d9df" if self.app.dark else "#30343c", padx=6, pady=4)
+        self.t_mod_log.pack(fill="x", pady=(8, 0))
+        self.t_mod_log.configure(state="disabled")
+
+        b = ttk.Frame(f)
+        b.pack(fill="x", pady=(10, 0))
+        ttk.Button(b, text="ファイルから追加…", command=self._pick_mods).pack(side="left")
+        ttk.Button(b, text="MOD フォルダを開く", command=self._open_mods_dir).pack(side="left", padx=8)
+        ttk.Button(b, text="作り方（modreadme.txt）", command=self._open_mod_readme).pack(side="left")
+        ttk.Button(b, text="すべて再読み込み", command=loader.reload_all).pack(side="right")
+
+        self._mod_log_key = None
+        loader.on_change = self._refresh_mods
+        self._refresh_mods()
+
+    def _selected_mod(self):
+        sel = self.mod_tree.selection()
+        return self.app.earo.mods.get(sel[0]) if sel else None
+
+    def _refresh_mods(self):
+        if not self.winfo_exists():
+            self.app.earo.on_change = None
+            return
+        loader = self.app.earo
+        tree = self.mod_tree
+        current = set(tree.get_children())
+        for mod_id in current - set(loader.mods):
+            tree.delete(mod_id)
+        for i, mod in enumerate(loader.mods.values()):
+            values = (mod.name, mod.info["version"], mod.info["author"], earo.STATUS_TEXT.get(mod.status, mod.status))
+            if tree.exists(mod.id):
+                tree.item(mod.id, values=values)
+                tree.move(mod.id, "", i)
+            else:
+                tree.insert("", i, iid=mod.id, values=values)
+        self._show_mod()
+
+    def _show_mod(self):
+        mod = self._selected_mod()
+        for btn in (self.b_mod_toggle, self.b_mod_reload, self.b_mod_remove):
+            btn.configure(state="normal" if mod else "disabled")
+        for w in self.f_mod_actions.winfo_children():
+            w.destroy()
+        if not mod:
+            self._set_mod_log([])
+            return
+        kind = "フォルダ" if mod.is_pkg else "ファイル"
+        text = mod.info["description"] or "（説明はありません）"
+        text += f"\n{kind}: {os.path.basename(mod.path)}"
+        if mod.status in ("error", "stopped") and mod.error:
+            text += f"\nエラー: {mod.error}"
+        self.l_mod.configure(text=text, foreground="#d9534f" if mod.status in ("error", "stopped") else "")
+        active = self.app.earo.is_active(mod.id)
+        self.b_mod_toggle.configure(text="オフにする" if active else "オンにする",
+                                    style="TButton" if active else "Accent.TButton")
+        if mod.loaded and mod.api._actions:
+            row = ttk.Frame(self.f_mod_actions)
+            row.pack(fill="x", pady=(8, 0))
+            for text_, func in mod.api._actions:
+                ttk.Button(row, text=text_, command=lambda m=mod, fn=func: self.app.earo._call(m, fn)) \
+                    .pack(side="left", padx=(0, 6))
+        self._set_mod_log(mod.logs)
+
+    def _set_mod_log(self, lines):
+        lines = list(lines)
+        key = (self._selected_mod().id if self._selected_mod() else None, len(lines), lines[-1] if lines else "")
+        if key == self._mod_log_key:
+            return
+        self._mod_log_key = key
+        t = self.t_mod_log
+        t.configure(state="normal")
+        t.delete("1.0", "end")
+        t.insert("end", "\n".join(lines[-200:]))
+        t.see("end")
+        t.configure(state="disabled")
+
+    def _toggle_mod(self):
+        mod = self._selected_mod()
+        if mod:
+            self.app.earo.set_active(mod, not self.app.earo.is_active(mod.id))
+
+    def _reload_mod(self):
+        mod = self._selected_mod()
+        if mod:
+            self.app.earo.reload(mod)
+
+    def _remove_mod(self):
+        mod = self._selected_mod()
+        if not mod:
+            return
+        if not messagebox.askyesno("MOD の削除", f"「{mod.name}」を削除しますか？\n"
+                                   f"mods フォルダから {os.path.basename(mod.path)} を消します（MOD が保存したデータは残ります）。",
+                                   icon="warning", parent=self):
+            return
+        try:
+            self.app.earo.remove(mod)
+        except OSError as e:
+            messagebox.showerror("MOD の削除", f"削除できませんでした。\n{e}", parent=self)
+
+    def _pick_mods(self):
+        from tkinter import filedialog
+        paths = filedialog.askopenfilenames(parent=self, title="追加する MOD を選んでください",
+                                            filetypes=[("MOD（.py / .zip）", "*.py *.zip"), ("すべてのファイル", "*.*")])
+        if paths:
+            self.install_mods(list(paths))
+
+    def _open_mods_dir(self):
+        os.makedirs(earo.MODS_DIR, exist_ok=True)
+        os.startfile(earo.MODS_DIR)
+
+    def _open_mod_readme(self):
+        path = os.path.join(earo.MODS_DIR, earo.README_NAME)
+        try:
+            if not os.path.isfile(path):
+                self.app.earo.prepare()
+            os.startfile(path)
+        except OSError as e:
+            messagebox.showerror("MOD の作り方", f"開けませんでした。\n{e}", parent=self)
+
+    def install_mods(self, paths):
+        """ドロップ・ファイル選択された MOD を確認してから追加する"""
+        self.nb.select(MODS_TAB)
+        self.lift()
+        loader = self.app.earo
+        plans, errors = [], []
+        for p in paths:
+            try:
+                plans.append(loader.inspect(p))
+            except earo.InstallError as e:
+                errors.append(f"・{os.path.basename(p.rstrip(chr(92) + '/'))}: {e}")
+        if not plans:
+            messagebox.showerror("MOD の追加", "追加できませんでした。\n\n" + "\n".join(errors), parent=self)
+            return
+        msg = "次の MOD を追加して、オンにしますか？\n\n"
+        msg += "\n".join(f"・{pl.mod_id}" + ("（同じ名前の MOD を上書き）" if pl.exists else "") for pl in plans)
+        msg += "\n\nMOD はこのアプリと同じ権限で動くプログラムです。信頼できる人が作ったものだけ追加してください。"
+        if errors:
+            msg += "\n\n追加できないもの:\n" + "\n".join(errors)
+        if not messagebox.askyesno("MOD の追加", msg, icon="warning", parent=self):
+            return
+        failed, last = [], None
+        for pl in plans:
+            try:
+                last = loader.install(pl)
+            except (OSError, zipfile.BadZipFile, earo.InstallError) as e:
+                failed.append(f"・{pl.mod_id}: {e}")
+        if last and self.mod_tree.exists(last.id):
+            self.mod_tree.selection_set(last.id)
+            self.mod_tree.see(last.id)
+        broken = [loader.mods[pl.mod_id] for pl in plans
+                  if pl.mod_id in loader.mods and loader.mods[pl.mod_id].status == "error"]
+        if failed or broken:
+            text = "\n".join(failed + [f"・{m.name}: 読み込めませんでした（{m.error}）" for m in broken])
+            messagebox.showwarning("MOD の追加", "うまく追加できなかった MOD があります。\n\n" + text, parent=self)
+
     # ---- 保存 / キャンセル ----
     def save(self):
         try:
@@ -860,6 +1071,7 @@ class SettingsDialog(tk.Toplevel):
         overlay = self._overlay_cfg()
         overlay["x"], overlay["y"] = self.app.config["overlay"]["x"], self.app.config["overlay"]["y"]
         cfg["overlay"] = overlay
+        cfg["mods"] = copy.deepcopy(self.app.config["mods"])   # MOD のオン・オフはその場で保存済み
         try:
             set_autostart(cfg["autostart"])
         except OSError as e:
@@ -902,6 +1114,7 @@ class App:
         self.icon_photo = ImageTk.PhotoImage(app_icon.make_image(64))
         self.root.iconphoto(True, self.icon_photo)
         self.root.protocol("WM_DELETE_WINDOW", self.hide)
+        self.earo = earo.Earo(self)   # MOD は画面ができてから読み込む
         self._build()
         dark_title_bar(self.root, self.dark)
 
@@ -916,7 +1129,10 @@ class App:
             except OSError:
                 pass
 
+        self.monitor.discord_filter = self.earo.discord_filter
         self.monitor.start()
+        self.earo.load_all()
+        dnd.enable(self.root, self._on_drop)
         self._start_tray()
         if start_minimized and self.tray:
             self.root.withdraw()
@@ -1014,6 +1230,10 @@ class App:
         # 幅が決まったら描き直す
         self.c_cats.bind("<Configure>", lambda e: setattr(self, "_cats_key", None))
 
+        # MOD が足す枠
+        self.f_mods = ttk.Frame(f)
+        self.f_mods.pack(fill="x")
+
         ttk.Separator(f).pack(fill="x", pady=12)
         # 1段目: 記録を見る（この PC / ウェブ）、2段目: 表示と設定
         b = ttk.Frame(f)
@@ -1034,6 +1254,7 @@ class App:
         self.l_cloud = ttk.Label(f, text="", foreground=self.sub_color, font=BODY_FONT, cursor="hand2")
         self.l_cloud.pack(anchor="w", pady=(2, 0))
         self.l_cloud.bind("<Button-1>", lambda e: self.open_settings(tab=4))
+        self.earo.render_panels()
 
     # ---- 状態の描画 ----
     def _state_view(self):
@@ -1101,6 +1322,7 @@ class App:
             pystray.MenuItem("オーバーレイ", lambda: put("overlay"),
                              checked=lambda item: self.config["overlay"]["enabled"]),
             pystray.MenuItem("設定", lambda: put("settings")),
+            pystray.MenuItem("Mods", lambda: put("mods")),
             pystray.MenuItem("アップデートを確認", lambda: put(("check_update",))),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("終了", lambda: put("quit")),
@@ -1119,6 +1341,7 @@ class App:
 
     # ---- 定期更新 ----
     def tick(self):
+        dnd.poll()
         while not self.events.empty():
             ev = self.events.get()
             if callable(ev):   # 別スレッドの処理が終わったあとの続き
@@ -1138,6 +1361,8 @@ class App:
                 self.set_overlay(not self.config["overlay"]["enabled"])
             elif ev == "settings":
                 self.open_settings()
+            elif ev == "mods":
+                self.open_settings(tab=MODS_TAB)
             elif ev == "quit":
                 self.quit()
                 return
@@ -1153,7 +1378,9 @@ class App:
         self.l_cloud.configure(text=f"アカウント: {self.sync_text()}")
         self._draw_categories()
         progress = self._update_goal(m.today_sec)
+        line2 = self.earo.apply_filter("overlay_text", line2)
         self.overlay.update(fmt_hms(m.today_sec), color, line2, progress)
+        self.earo.tick()
         self._update_tray(color, f"今日の作業 {fmt_hm(m.today_sec)}（{head}）")
         self.root.after(500, self.tick)
 
@@ -1164,6 +1391,7 @@ class App:
             self.today = date.today()
             self.streak_base = core.goal_streak_before(self.config, self.today)
             self._check_weekly()
+            self.earo.emit("day_change", self.today.isoformat())
 
         goal_min = self.config.get("daily_goal_min", 0)
         if goal_min <= 0:
@@ -1188,6 +1416,7 @@ class App:
             self.config["notified"]["goal_date"] = today_str
             core.save_config(self.config)
             self._notify(f"今日の目標 {fmt_goal(goal_min)} を達成しました！" + (f"（🔥{streak}日連続）" if streak > 1 else ""))
+            self.earo.emit("goal_reached", goal_min, streak)
         return min(1.0, today_sec / goal)
 
     def _check_weekly(self):
@@ -1345,6 +1574,11 @@ class App:
             return
         self.settings = SettingsDialog(self, tab)
 
+    def _on_drop(self, paths):
+        """メイン画面にファイルがドロップされたら、Mods タブを開いて追加する"""
+        self.open_settings(tab=MODS_TAB)
+        self.settings.install_mods(paths)
+
     def after_data_deleted(self):
         """PC の記録を消したあと、画面の集計と連続達成日数を作り直す"""
         self._cats_key = None
@@ -1362,6 +1596,7 @@ class App:
         self._apply_window_options()
 
     def quit(self):
+        self.earo.shutdown()
         self.monitor.stop()
         if self.tray:
             self.tray.stop()
