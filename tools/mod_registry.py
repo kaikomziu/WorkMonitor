@@ -92,7 +92,14 @@ def package(result):
     return f"{mod_id}.zip", buf.getvalue()
 
 
-def publish(index, result):
+def clean_changes(text):
+    """更新内容（投稿者が書いた文）を一覧に載せられる形にする"""
+    text = mod_review.HIDDEN_CHARS.sub("", str(text or ""))
+    lines = [" ".join(line.split()) for line in text.replace("\r\n", "\n").split("\n")]
+    return "\n".join(line for line in lines if line)[:500]
+
+
+def publish(index, result, changes=""):
     """docs/mods/files/<id>/<version>/ に置いて一覧に載せる → 公開した版の情報"""
     info = result["info"]
     mod_id, version = result["mod_id"], info["version"]
@@ -110,6 +117,7 @@ def publish(index, result):
         "permissions": result["report"]["permissions"],
         "api": info.get("api", 1),
         "source_sha256": result["report"]["sha256"],   # 投稿されたファイルのハッシュ（同じ投稿の二重公開を防ぐ）
+        "changes": clean_changes(changes),
     }
     mod = next((m for m in index["mods"] if m["id"] == mod_id), None)
     if mod is None:
@@ -153,10 +161,11 @@ def cmd_review(out_path):
             if latest and mod_review.version_key(version) <= mod_review.version_key(latest):
                 res["ok"] = False
                 report["findings"].append({"level": "block", "file": "", "line": 0,
-                                           "message": f"version を、公開中の {latest} より大きくしてください。"})
+                                           "message": f"更新するときは、MOD_INFO の version を公開中の {latest} より大きくしてください"
+                                                      f"（今は {version}）。"})
         report["ok"] = res["ok"]
         if res["ok"]:
-            entry = publish(index, res)
+            entry = publish(index, res, row.get("changes", ""))
             report["published"] = entry["file"]
         results.append({"id": row["id"], "status": "approved" if res["ok"] else "rejected",
                         "version": version, "report": report})

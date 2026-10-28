@@ -57,6 +57,10 @@
   .submit-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
   @media (max-width: 820px) { .submit-grid { grid-template-columns: minmax(0, 1fr); } }
   .rules { font-size: 14px; color: var(--sub); padding-left: 1.2em; margin: 8px 0 0; }
+  .update-banner { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+    background: var(--soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); border-radius: 10px; padding: 10px 12px; margin-bottom: 4px; }
+  .changes { white-space: pre-line; font-size: 13px; color: var(--sub); margin: 0; overflow-wrap: anywhere; }
+  .older .changes { margin: 0 0 6px 1em; }
   code { background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; font-size: 13px; }
 </style>
 </head>
@@ -126,9 +130,15 @@
         </div>
         <form id="sub-form" class="hidden">
           <p class="sub small" id="sub-user"></p>
+          <div class="update-banner hidden" id="sub-update">
+            <div><b id="sub-update-title"></b><div class="small" id="sub-update-desc"></div></div>
+            <button class="btn" type="button" id="sub-update-cancel">新しい MOD を投稿する</button>
+          </div>
           <label class="field"><span>MOD のファイル（<code>.py</code> か <code>.zip</code>、512KB まで）</span>
             <input type="file" id="sub-file" accept=".py,.zip" required></label>
           <div class="sub small" id="sub-file-info"></div>
+          <label class="field"><span>更新内容（任意・500 文字まで。一覧に公開されます）</span>
+            <textarea id="sub-changes" rows="3" maxlength="500" placeholder="例: 休憩の通知を出せるようにしました"></textarea></label>
           <label class="check"><input type="checkbox" id="sub-agree"> <span><a href="terms.html#mods" target="_blank" rel="noopener">利用規約 第8条（MOD）</a>に同意し、この MOD を公開・配布する権利があることを確認しました。MOD は誰でも見られる形で公開されます。</span></label>
           <button class="btn primary" type="submit" id="sub-btn">投稿する</button>
           <div class="msg" id="sub-msg" role="status"></div>
@@ -139,12 +149,21 @@
         <ul class="rules">
           <li>ファイル名がそのまま MOD の名前になります。<b>英小文字・数字・<code>_</code>・<code>-</code> で 2〜40 文字</b>にしてください（例: <code>my_timer.py</code>）。</li>
           <li><code>MOD_INFO</code> に name・version・author・description を書いてください。author と説明は公開されます。</li>
-          <li>同じ名前の MOD を更新できるのは、最初に公開した人だけです。更新するときは version を上げてください。</li>
+          <li><b>更新</b>：MOD_INFO の version を上げて、同じファイル名で投稿します（ログイン後に出る「あなたの MOD」の「新しいバージョンを投稿」からもできます）。更新できるのは、最初に公開した人だけです。</li>
           <li>ほかのプログラムの起動、組み立てたコードの実行、ファイルの削除、パスワードやトークンの読み取り、<code>api.app</code> の利用などは、自動審査で不合格になります。詳しくは <a href="https://github.com/kaikomziu/WorkMonitor/blob/main/mods/modreadme.txt">modreadme.txt</a> の「12. 公式サイトへの投稿」を見てください。</li>
           <li>通信やファイルの書き込みなどをする MOD は、その内容が一覧に表示されます。</li>
           <li>審査中は 3 件まで、1 日に 10 件まで投稿できます。</li>
         </ul>
       </div>
+    </div>
+
+    <div class="card hidden" id="owned" style="margin-top:14px">
+      <b>あなたの MOD</b>
+      <p class="sub small" style="margin:4px 0 0">公開中の MOD を更新できます。MOD_INFO の version を上げて、同じファイル名で投稿してください。審査に合格すると新しいバージョンが公開され、前のバージョンも「以前のバージョン」に残ります。</p>
+      <div class="scroll"><table>
+        <thead><tr><th>MOD</th><th>公開中のバージョン</th><th>更新日時</th><th></th></tr></thead>
+        <tbody id="owned-rows"></tbody>
+      </table></div>
     </div>
 
     <div class="card hidden" id="mine" style="margin-top:14px">
