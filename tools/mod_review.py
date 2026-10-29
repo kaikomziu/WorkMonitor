@@ -106,7 +106,10 @@ SENSITIVE_STRINGS = [
     (re.compile(r"mod_data[\\/]", re.I), "ほかの MOD の保存データ"),
 ]
 WM_LOGS = re.compile(r"workmonitor.*logs|logs.*\.csv", re.I)
-HIDDEN_CHARS = re.compile("[​-‏‪-‮⁦-⁩﻿]")
+# 見えない文字。ただし絵文字をつなぐ ZWJ（例: 😮‍💨）は、前後が絵文字なら問題ないので除く
+_EMOJI = "[\U0001F000-\U0001FAFF☀-➿⬀-⯿️]"
+HIDDEN_CHARS = re.compile(f"[​‌‎‏‪-‮⁦-⁩﻿]"
+                          f"|(?<!{_EMOJI})‍|‍(?!{_EMOJI})")
 NETWORK_MODULES = {"urllib", "urllib.request", "http", "http.client", "requests", "aiohttp", "websocket", "ssl"}
 
 PERMISSIONS = {

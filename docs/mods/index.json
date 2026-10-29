@@ -1,6 +1,1343 @@
 {
- "updated": "2026-10-29T00:06:19Z",
+ "updated": "2026-10-29T11:59:54Z",
  "mods": [
+  {
+   "id": "achievements",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/achievements/1.0.0/achievements.py",
+     "size": 4217,
+     "sha256": "3c93e441acfe115b8b6789edf676e644978d1b11297b285ab699e84c75b5aa35",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "dialog",
+      "notify",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "3c93e441acfe115b8b6789edf676e644978d1b11297b285ab699e84c75b5aa35",
+     "changes": ""
+    }
+   ],
+   "name": "実績",
+   "author": "かるわか",
+   "description": "「朝6時前に作業」「1日8時間」などの実績を解除して集めます。解除すると通知します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "app_emoji",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/app_emoji/1.0.0/app_emoji.py",
+     "size": 2749,
+     "sha256": "4c667f1dfe507b08fa371fbd71f4f3858ef3d97c0bdbce9dacbae1c03ce30744",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "dialog",
+      "overlay"
+     ],
+     "api": 1,
+     "source_sha256": "4c667f1dfe507b08fa371fbd71f4f3858ef3d97c0bdbce9dacbae1c03ce30744",
+     "changes": ""
+    }
+   ],
+   "name": "アプリ別の絵文字",
+   "author": "かるわか",
+   "description": "オーバーレイの先頭に、アプリやカテゴリに合った絵文字（💻🎨🎵 など）を付けます。自分で追加もできます。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "app_goals",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/app_goals/1.0.0/app_goals.py",
+     "size": 3367,
+     "sha256": "d84db259a67fcb6c3edf4f328d3951b16a10ab4e22fc2e3c67b24a80f6645641",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "dialog",
+      "notify",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "d84db259a67fcb6c3edf4f328d3951b16a10ab4e22fc2e3c67b24a80f6645641",
+     "changes": ""
+    }
+   ],
+   "name": "アプリ別の目標",
+   "author": "かるわか",
+   "description": "アプリ（表示名）ごとに1日の目標時間を決めて、プログレスバーで表示します。達成したら通知します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "app_notes",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/app_notes/1.0.0/app_notes.py",
+     "size": 2341,
+     "sha256": "755656040948c4ce982ff321b8622f2c75a6fc9db9965b49437f39f7139e5923",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "dialog",
+      "notify"
+     ],
+     "api": 1,
+     "source_sha256": "755656040948c4ce982ff321b8622f2c75a6fc9db9965b49437f39f7139e5923",
+     "changes": ""
+    }
+   ],
+   "name": "アプリ別メモ",
+   "author": "かるわか",
+   "description": "アプリにメモを登録すると、そのアプリに切り替えたときに通知します（同じアプリは30分に1回まで）。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "app_ranking",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/app_ranking/1.0.0/app_ranking.py",
+     "size": 2508,
+     "sha256": "a29012c087d278630e89d0a2aaed18a544ceb41c838be7294fbe2174284933da",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "a29012c087d278630e89d0a2aaed18a544ceb41c838be7294fbe2174284933da",
+     "changes": ""
+    }
+   ],
+   "name": "アプリのランキング",
+   "author": "かるわか",
+   "description": "今週・今月・累計でよく使ったアプリのトップ5を表示します（記録はこの MOD を入れた日から）。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "break_reminder",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/break_reminder/1.0.0/break_reminder.py",
+     "size": 1897,
+     "sha256": "8424303224cd2229546e1ea6d40f3ff39d3c7765e98d9871406840b478a66dab",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "dialog",
+      "notify"
+     ],
+     "api": 1,
+     "source_sha256": "8424303224cd2229546e1ea6d40f3ff39d3c7765e98d9871406840b478a66dab",
+     "changes": ""
+    }
+   ],
+   "name": "休憩リマインダー",
+   "author": "かるわか",
+   "description": "連続で作業した時間が一定（初期は60分）を超えると休憩をすすめます。休憩中が3分続くとリセット。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "category_pie",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/category_pie/1.0.0/category_pie.py",
+     "size": 2754,
+     "sha256": "28b2ca90c7272c615253ca1f8aa37e0a377b50e896be67f599f666bfdfb7ae74",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "28b2ca90c7272c615253ca1f8aa37e0a377b50e896be67f599f666bfdfb7ae74",
+     "changes": ""
+    }
+   ],
+   "name": "カテゴリ別円グラフ",
+   "author": "かるわか",
+   "description": "今日の作業時間のカテゴリ別の割合を円グラフで表示します（この MOD が動いている間の分）。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "cheer_panel",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/cheer_panel/1.0.0/cheer_panel.py",
+     "size": 1951,
+     "sha256": "dc1a6857968411c35ab1def57944209ae97c828a7754ffe1ea58e5b53dddfd5b",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "dc1a6857968411c35ab1def57944209ae97c828a7754ffe1ea58e5b53dddfd5b",
+     "changes": ""
+    }
+   ],
+   "name": "応援メッセージ",
+   "author": "かるわか",
+   "description": "メイン画面に応援メッセージを表示します。作業時間や時間帯に合わせて10分ごとに変わります。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "csv_export",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/csv_export/1.0.0/csv_export.py",
+     "size": 1872,
+     "sha256": "b93d30bcd1c515c25bf2c6ef04173c29cb9e85fcfc023a24f4b54b643b5180d4",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "dialog",
+      "file_write",
+      "notify"
+     ],
+     "api": 1,
+     "source_sha256": "b93d30bcd1c515c25bf2c6ef04173c29cb9e85fcfc023a24f4b54b643b5180d4",
+     "changes": ""
+    }
+   ],
+   "name": "CSV エクスポート",
+   "author": "かるわか",
+   "description": "日ごと・アプリごとの作業時間（分）を CSV に書き出します。記録はこの MOD を入れた日からです。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "daily_intention",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/daily_intention/1.0.0/daily_intention.py",
+     "size": 2002,
+     "sha256": "fd59cfdffba017844d881e1bd270c4973c2a6209503ffa409d503bdaba8bdddf",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "dialog",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "fd59cfdffba017844d881e1bd270c4973c2a6209503ffa409d503bdaba8bdddf",
+     "changes": ""
+    }
+   ],
+   "name": "作業開始の宣言",
+   "author": "かるわか",
+   "description": "その日最初の作業開始時に「今日やること」を入力し、メイン画面に表示します。過去の宣言も保存されます。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "daily_limit",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/daily_limit/1.0.0/daily_limit.py",
+     "size": 1897,
+     "sha256": "68b0eab3a42e0ed48cd8af0b34553333afffdb4b4c19eeb5369e4c17924065d0",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "dialog",
+      "notify",
+      "overlay"
+     ],
+     "api": 1,
+     "source_sha256": "68b0eab3a42e0ed48cd8af0b34553333afffdb4b4c19eeb5369e4c17924065d0",
+     "changes": ""
+    }
+   ],
+   "name": "1日の上限",
+   "author": "かるわか",
+   "description": "今日の作業時間が上限（初期10時間）の9割で予告し、超えたら警告します。オーバーレイに⚠も出します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "deadline_countdown",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/deadline_countdown/1.0.0/deadline_countdown.py",
+     "size": 3903,
+     "sha256": "c40ddc2c10f92e17e447844b48c7d050a0a0c10e47fc7b908d27caf257e5c7f2",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "dialog",
+      "notify",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "c40ddc2c10f92e17e447844b48c7d050a0a0c10e47fc7b908d27caf257e5c7f2",
+     "changes": ""
+    }
+   ],
+   "name": "締め切りカウントダウン",
+   "author": "かるわか",
+   "description": "締め切りを登録すると残り日数を表示します。3日前から赤くなり、前日・当日の朝に通知します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "debug_viewer",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/debug_viewer/1.0.0/debug_viewer.py",
+     "size": 2452,
+     "sha256": "2929122b61891381cd9aaa03ae58a9fbecb9dccfc6a3ee53e8fcc1bc06970f60",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "2929122b61891381cd9aaa03ae58a9fbecb9dccfc6a3ee53e8fcc1bc06970f60",
+     "changes": ""
+    }
+   ],
+   "name": "MOD デバッグビューア",
+   "author": "かるわか",
+   "description": "status の中身と、最近のイベント（state_change・app_change など）をメイン画面に表示します。MOD 作りに便利。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "discord_hours",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/discord_hours/1.0.0/discord_hours.py",
+     "size": 1017,
+     "sha256": "d4619ed6fc0e19c5075f1f154847269966aa8704a19e83ca4ebf8773ec05b6dd",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "discord"
+     ],
+     "api": 1,
+     "source_sha256": "d4619ed6fc0e19c5075f1f154847269966aa8704a19e83ca4ebf8773ec05b6dd",
+     "changes": ""
+    }
+   ],
+   "name": "Discord に作業時間",
+   "author": "かるわか",
+   "description": "Discord のステータスを「🔥 作業中 · 今日 2時間15分（75%）」のようにします。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "discord_privacy",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/discord_privacy/1.0.0/discord_privacy.py",
+     "size": 753,
+     "sha256": "f8d4964e779eeafaefe79833c58686c6cff8994033f383ad8d12a1e4d0027bd1",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "discord"
+     ],
+     "api": 1,
+     "source_sha256": "f8d4964e779eeafaefe79833c58686c6cff8994033f383ad8d12a1e4d0027bd1",
+     "changes": ""
+    }
+   ],
+   "name": "Discord のぼかし",
+   "author": "かるわか",
+   "description": "Discord のステータスに出るアプリ名をかくし、「開発の作業中」のようにカテゴリだけ出します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "distraction_alert",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/distraction_alert/1.0.0/distraction_alert.py",
+     "size": 1255,
+     "sha256": "74962e71f9017699a3f322186aac88ed534f459b315288b5c96c0fcad83e6945",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "dialog",
+      "notify"
+     ],
+     "api": 1,
+     "source_sha256": "74962e71f9017699a3f322186aac88ed534f459b315288b5c96c0fcad83e6945",
+     "changes": ""
+    }
+   ],
+   "name": "脱線警告",
+   "author": "かるわか",
+   "description": "数えないアプリを続けて5分（変更可）使うと、作業に戻るよう通知します。そのあとも5分ごとに知らせます。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "first_last_time",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/first_last_time/1.0.0/first_last_time.py",
+     "size": 2069,
+     "sha256": "42c24b9671c3506523a27dc9463b61cc9773471c1662562e80dfc10852f29002",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "42c24b9671c3506523a27dc9463b61cc9773471c1662562e80dfc10852f29002",
+     "changes": ""
+    }
+   ],
+   "name": "始業・終業時刻",
+   "author": "かるわか",
+   "description": "今日の最初の作業開始時刻と最後に作業した時刻、その間の長さを表示します。過去30日分を保存します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "flow_detect",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/flow_detect/1.0.0/flow_detect.py",
+     "size": 1337,
+     "sha256": "dcb7997fc0fe9bce29184853559b17e74780e30b59ed5014c7a7544bfabe37e8",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "notify",
+      "overlay"
+     ],
+     "api": 1,
+     "source_sha256": "dcb7997fc0fe9bce29184853559b17e74780e30b59ed5014c7a7544bfabe37e8",
+     "changes": ""
+    }
+   ],
+   "name": "フロー検知",
+   "author": "かるわか",
+   "description": "同じアプリで30分以上作業が続くとフロー状態と判定し、オーバーレイに🔥を表示して通知します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "focus_session",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/focus_session/1.0.0/focus_session.py",
+     "size": 2671,
+     "sha256": "4850c6ee042fc60f9122b8737a6d01288bd85aca1f027c1cbd5f4ad60b142f96",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "notify",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "4850c6ee042fc60f9122b8737a6d01288bd85aca1f027c1cbd5f4ad60b142f96",
+     "changes": ""
+    }
+   ],
+   "name": "集中セッション計測",
+   "author": "かるわか",
+   "description": "休憩なしで続いた作業の長さを測ります。今日と歴代の最長記録を表示し、更新したら通知します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "forest",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/forest/1.0.0/forest.py",
+     "size": 2727,
+     "sha256": "45af7ec6927d2f8e0d6aeba627091f6e1ea220a480f9b3d3c34044854343e717",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "notify",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "45af7ec6927d2f8e0d6aeba627091f6e1ea220a480f9b3d3c34044854343e717",
+     "changes": ""
+    }
+   ],
+   "name": "作業の森",
+   "author": "かるわか",
+   "description": "作業30分ごとに木が1本生えます。休憩なしで続けた分は大きな木に。今日の森と、累計の本数を表示します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "gacha",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/gacha/1.0.0/gacha.py",
+     "size": 4032,
+     "sha256": "8fc17c3fb2ec7355d8106fcac2229cf1f66d4d8559d84af5c369cc054d132059",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "dialog",
+      "notify",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "8fc17c3fb2ec7355d8106fcac2229cf1f66d4d8559d84af5c369cc054d132059",
+     "changes": ""
+    }
+   ],
+   "name": "作業ガチャ",
+   "author": "かるわか",
+   "description": "作業30分でガチャチケット1枚。N・R・SR・SSR のアイテムを集めて図鑑を埋めましょう。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "goal_calendar",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/goal_calendar/1.0.0/goal_calendar.py",
+     "size": 3168,
+     "sha256": "1dceec1cdfaebf3823d3ec561ff2fbe63b658a156555a2915a179be2a29aab17",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "1dceec1cdfaebf3823d3ec561ff2fbe63b658a156555a2915a179be2a29aab17",
+     "changes": ""
+    }
+   ],
+   "name": "目標カレンダー",
+   "author": "かるわか",
+   "description": "月のカレンダーに、目標達成した日を緑、作業した日を青で表示します。前後の月も見られます。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "goal_eta",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/goal_eta/1.0.0/goal_eta.py",
+     "size": 2169,
+     "sha256": "af0d071fa58a25f6a30af5d44c2ff5d677751fd08811eb4e6b761bff68c7f00a",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "af0d071fa58a25f6a30af5d44c2ff5d677751fd08811eb4e6b761bff68c7f00a",
+     "changes": ""
+    }
+   ],
+   "name": "残り時間予測",
+   "author": "かるわか",
+   "description": "最初に作業を始めた時刻からのペースで、目標を達成しそうな時刻を予測します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "goal_fanfare",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/goal_fanfare/1.0.0/goal_fanfare.py",
+     "size": 1119,
+     "sha256": "47fe708821e75329dc8474d40e753f9029b80a5f17374df366ec539769e75b9b",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "notify",
+      "sound",
+      "thread"
+     ],
+     "api": 1,
+     "source_sha256": "47fe708821e75329dc8474d40e753f9029b80a5f17374df366ec539769e75b9b",
+     "changes": ""
+    }
+   ],
+   "name": "目標達成ファンファーレ",
+   "author": "かるわか",
+   "description": "1日の目標を達成した瞬間にファンファーレを鳴らします。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "goal_progress",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/goal_progress/1.0.0/goal_progress.py",
+     "size": 1569,
+     "sha256": "9b1e0c2a74ef17e24f500112280b82168923b4a620b3916744008401c05fc466",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "9b1e0c2a74ef17e24f500112280b82168923b4a620b3916744008401c05fc466",
+     "changes": ""
+    }
+   ],
+   "name": "目標の進捗バー",
+   "author": "かるわか",
+   "description": "1日の目標に対する達成度をプログレスバーと残り時間で表示します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "hour_heatmap",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/hour_heatmap/1.0.0/hour_heatmap.py",
+     "size": 2883,
+     "sha256": "3c4f906386277bd7c12cb8caf5728c42fe6128a3bab72820bf973af096019ca8",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "3c4f906386277bd7c12cb8caf5728c42fe6128a3bab72820bf973af096019ca8",
+     "changes": ""
+    }
+   ],
+   "name": "時間帯ヒートマップ",
+   "author": "かるわか",
+   "description": "0〜23時のどの時間帯に作業しているかを色の濃さで表示します。今日の分と累計の2段です。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "hourly_chime",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/hourly_chime/1.0.0/hourly_chime.py",
+     "size": 1205,
+     "sha256": "70d3d8084f0a23d367093234bf26216bff842c37d06ce4da8a596077bec1cf48",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "sound",
+      "thread"
+     ],
+     "api": 1,
+     "source_sha256": "70d3d8084f0a23d367093234bf26216bff842c37d06ce4da8a596077bec1cf48",
+     "changes": ""
+    }
+   ],
+   "name": "時報",
+   "author": "かるわか",
+   "description": "毎時0分にチャイムで知らせます（3時なら3回）。数えないアプリを使っているときは鳴らしません。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "late_night",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/late_night/1.0.0/late_night.py",
+     "size": 1798,
+     "sha256": "047b76c0a12856d2a2f07d31a1830fcb6bebc3b7c521cdf36ba4ba47a2e5ed36",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "dialog",
+      "notify",
+      "overlay"
+     ],
+     "api": 1,
+     "source_sha256": "047b76c0a12856d2a2f07d31a1830fcb6bebc3b7c521cdf36ba4ba47a2e5ed36",
+     "changes": ""
+    }
+   ],
+   "name": "深夜作業の警告",
+   "author": "かるわか",
+   "description": "決めた時刻（初期 0時）〜朝5時に作業していると、30分ごとに寝るようすすめます。オーバーレイに🌙も出します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "level_xp",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/level_xp/1.0.0/level_xp.py",
+     "size": 2563,
+     "sha256": "180b896c4f4991a238e1a56ed530cd27b7ee618f51061721f4ccde06149dda35",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "notify",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "180b896c4f4991a238e1a56ed530cd27b7ee618f51061721f4ccde06149dda35",
+     "changes": ""
+    }
+   ],
+   "name": "レベル＆経験値",
+   "author": "かるわか",
+   "description": "作業1分で1XP、目標達成でボーナス30XP。レベルが上がると通知します。称号つき。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "memo_panel",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/memo_panel/1.0.0/memo_panel.py",
+     "size": 2672,
+     "sha256": "7be0e172c3c9962264c015335c5aafe27efb107aff677a5941bcb735560bef84",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "7be0e172c3c9962264c015335c5aafe27efb107aff677a5941bcb735560bef84",
+     "changes": ""
+    }
+   ],
+   "name": "メモ帳",
+   "author": "かるわか",
+   "description": "メイン画面のメモ欄。書いた内容は日付ごとに自動保存され、◀ ▶ で前の日のメモを見られます。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "milestone",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/milestone/1.0.0/milestone.py",
+     "size": 1243,
+     "sha256": "6e03a574cd197afeb55f910e90174a8d3a6bdc0e732e13d90308d2973237b4eb",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "notify"
+     ],
+     "api": 1,
+     "source_sha256": "6e03a574cd197afeb55f910e90174a8d3a6bdc0e732e13d90308d2973237b4eb",
+     "changes": ""
+    }
+   ],
+   "name": "マイルストーン通知",
+   "author": "かるわか",
+   "description": "今日の作業時間が1時間を超えるごとに、ほめる通知を出します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "overlay_clock",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/overlay_clock/1.0.0/overlay_clock.py",
+     "size": 488,
+     "sha256": "4235d5bd65bc53508ea52a2076ebe78208055c15b84dfbd30bfd6624e62ab695",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "overlay"
+     ],
+     "api": 1,
+     "source_sha256": "4235d5bd65bc53508ea52a2076ebe78208055c15b84dfbd30bfd6624e62ab695",
+     "changes": ""
+    }
+   ],
+   "name": "オーバーレイ時計",
+   "author": "かるわか",
+   "description": "オーバーレイに現在時刻（例: 🕒 14:05）を足します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "overlay_percent",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/overlay_percent/1.0.0/overlay_percent.py",
+     "size": 831,
+     "sha256": "c4b273c29d96e644291f5bbd6dd5af7771351593e86a87f9aa12141f8de60fc9",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "overlay"
+     ],
+     "api": 1,
+     "source_sha256": "c4b273c29d96e644291f5bbd6dd5af7771351593e86a87f9aa12141f8de60fc9",
+     "changes": ""
+    }
+   ],
+   "name": "オーバーレイに達成率",
+   "author": "かるわか",
+   "description": "オーバーレイの先頭に目標の達成率（例: 63%）を付けます。達成したら ✅ になります。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "personal_best",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/personal_best/1.0.0/personal_best.py",
+     "size": 2052,
+     "sha256": "55e94ec2dbde20030c0a2388457b3aaf64e0703795dc59727658cbbbe74ca646",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "notify",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "55e94ec2dbde20030c0a2388457b3aaf64e0703795dc59727658cbbbe74ca646",
+     "changes": ""
+    }
+   ],
+   "name": "自己ベスト記録",
+   "author": "かるわか",
+   "description": "1日の作業時間の自己ベストを記録します。今日の作業がベストを超えた瞬間に通知します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "pomodoro_plus",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/pomodoro_plus/1.0.0/pomodoro_plus.py",
+     "size": 3621,
+     "sha256": "94b6dc3a66f527e760e60dc1060a3effe56b1de7ef0249b1da5c7722bb1b5308",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "dialog",
+      "notify",
+      "overlay",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "94b6dc3a66f527e760e60dc1060a3effe56b1de7ef0249b1da5c7722bb1b5308",
+     "changes": ""
+    }
+   ],
+   "name": "ポモドーロ強化版",
+   "author": "かるわか",
+   "description": "作業（作業中だけ進む）と休憩（実時間で進む）を交互にくり返すタイマー。4回ごとに長い休憩になります。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "posture_check",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/posture_check/1.0.0/posture_check.py",
+     "size": 1483,
+     "sha256": "6f3d258c8c341f8d47a83eaa8ad31d6217ade3305f21ae1a70937ba4e5c2b8d5",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "notify"
+     ],
+     "api": 1,
+     "source_sha256": "6f3d258c8c341f8d47a83eaa8ad31d6217ade3305f21ae1a70937ba4e5c2b8d5",
+     "changes": ""
+    }
+   ],
+   "name": "姿勢チェック",
+   "author": "かるわか",
+   "description": "作業中に20〜40分のランダムな間隔で、背筋・肩・画面との距離などの姿勢チェックを通知します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "productivity_score",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/productivity_score/1.0.0/productivity_score.py",
+     "size": 2620,
+     "sha256": "6079aa94d2d411f4c2047f985fd18f8ff5dc3a7d589fa9855e45fa17c72f38da",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "6079aa94d2d411f4c2047f985fd18f8ff5dc3a7d589fa9855e45fa17c72f38da",
+     "changes": ""
+    }
+   ],
+   "name": "生産性スコア",
+   "author": "かるわか",
+   "description": "作業時間（60点）・集中度（切り替えの少なさ 20点）・脱線の少なさ（20点）で今日を採点します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "quotes",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/quotes/1.0.0/quotes.py",
+     "size": 2354,
+     "sha256": "b381246091a6a9fb2527b021cbbcc65e43b8493460c9c407128433bb73d97cdf",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "notify"
+     ],
+     "api": 1,
+     "source_sha256": "b381246091a6a9fb2527b021cbbcc65e43b8493460c9c407128433bb73d97cdf",
+     "changes": ""
+    }
+   ],
+   "name": "名言",
+   "author": "かるわか",
+   "description": "休憩から作業に戻ったとき、やる気の出る名言をランダムに通知します（30分に1回まで）。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "rule_202020",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/rule_202020/1.0.0/rule_202020.py",
+     "size": 1092,
+     "sha256": "f2612e33b338c75dfe615b0c0f7163b7b55e4adc46d081ac730000612c6ef6d7",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "notify"
+     ],
+     "api": 1,
+     "source_sha256": "f2612e33b338c75dfe615b0c0f7163b7b55e4adc46d081ac730000612c6ef6d7",
+     "changes": ""
+    }
+   ],
+   "name": "20-20-20 ルール",
+   "author": "かるわか",
+   "description": "作業20分ごとに、20秒間 遠く（6m先）を見るように知らせて目の疲れを防ぎます。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "season_deco",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/season_deco/1.0.0/season_deco.py",
+     "size": 1520,
+     "sha256": "68883ff15e00936f48ea5728860e9dcb3b0d30e8e9ef3bb3d5408a19e7cf6e61",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "overlay"
+     ],
+     "api": 1,
+     "source_sha256": "68883ff15e00936f48ea5728860e9dcb3b0d30e8e9ef3bb3d5408a19e7cf6e61",
+     "changes": ""
+    }
+   ],
+   "name": "季節のかざり",
+   "author": "かるわか",
+   "description": "お正月🎍・バレンタイン🍫・桜🌸・ハロウィン🎃・クリスマス🎄など、日付に合った絵文字をオーバーレイに付けます。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "short_break",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/short_break/1.0.0/short_break.py",
+     "size": 1466,
+     "sha256": "2cc45a4b488be7a0eccfa0ac7389f3db0d5a4dfb7e7cc46decdcb0be0f520b9c",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "notify"
+     ],
+     "api": 1,
+     "source_sha256": "2cc45a4b488be7a0eccfa0ac7389f3db0d5a4dfb7e7cc46decdcb0be0f520b9c",
+     "changes": ""
+    }
+   ],
+   "name": "休憩の質チェック",
+   "author": "かるわか",
+   "description": "45分以上作業したあと、休憩が3分未満ですぐ戻ってきたら「もう少し休もう」と知らせます。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "state_sounds",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/state_sounds/1.0.0/state_sounds.py",
+     "size": 1196,
+     "sha256": "ae92b0609c2d50bbe169f1833c68fde2c5d66c8e7e60e13c19038b4ac10ffaea",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "sound",
+      "thread"
+     ],
+     "api": 1,
+     "source_sha256": "ae92b0609c2d50bbe169f1833c68fde2c5d66c8e7e60e13c19038b4ac10ffaea",
+     "changes": ""
+    }
+   ],
+   "name": "状態変化の効果音",
+   "author": "かるわか",
+   "description": "作業開始は「ピロン↑」、休憩は「ポロン↓」、数えないアプリは「ブッ」と、状態が変わるたびに音で知らせます。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "streak_badge",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/streak_badge/1.0.0/streak_badge.py",
+     "size": 2054,
+     "sha256": "58699afa6760fb0cdbb7dd17cb6880a9b003cf61cdf7a94390c0df9a6808b244",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "notify",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "58699afa6760fb0cdbb7dd17cb6880a9b003cf61cdf7a94390c0df9a6808b244",
+     "changes": ""
+    }
+   ],
+   "name": "連続日数バッジ",
+   "author": "かるわか",
+   "description": "目標達成の連続日数に応じて 🥉🥈🥇👑 の称号を表示し、ランクが上がったら通知します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "stretch",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/stretch/1.0.0/stretch.py",
+     "size": 1959,
+     "sha256": "5da8c1b2928ee0007a5d4b8c5687366891b96a7db3446aa81b99e29d8453ce5d",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "notify"
+     ],
+     "api": 1,
+     "source_sha256": "5da8c1b2928ee0007a5d4b8c5687366891b96a7db3446aa81b99e29d8453ce5d",
+     "changes": ""
+    }
+   ],
+   "name": "ストレッチ指示",
+   "author": "かるわか",
+   "description": "作業45分ごとに、座ったままでもできるストレッチのやり方をランダムに通知します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "switch_counter",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/switch_counter/1.0.0/switch_counter.py",
+     "size": 2091,
+     "sha256": "ae2b77113a0f190b9e7dd8d63f0e596f848be7a51ec661bf09b66aa2132ed322",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "ae2b77113a0f190b9e7dd8d63f0e596f848be7a51ec661bf09b66aa2132ed322",
+     "changes": ""
+    }
+   ],
+   "name": "アプリ切り替えカウンター",
+   "author": "かるわか",
+   "description": "今日アプリを切り替えた回数と、直近1時間の回数を表示します。多すぎると集中が途切れているサインかも。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "time_block",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/time_block/1.0.0/time_block.py",
+     "size": 2979,
+     "sha256": "19d68c810eb98af44c92a1a518ea621ece4b7652a6303a4344b985d425c06da0",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "dialog",
+      "notify",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "19d68c810eb98af44c92a1a518ea621ece4b7652a6303a4344b985d425c06da0",
+     "changes": ""
+    }
+   ],
+   "name": "時間帯ブロック",
+   "author": "かるわか",
+   "description": "時間帯ごとにやるカテゴリを決め、ちがうカテゴリで1分以上作業すると知らせます（10分に1回まで）。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "timebox",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/timebox/1.0.0/timebox.py",
+     "size": 2463,
+     "sha256": "98cca9105a47b76fbf72478c5a3ba217331595389315d7099d8df2eb89a80352",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "dialog",
+      "notify",
+      "overlay",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "98cca9105a47b76fbf72478c5a3ba217331595389315d7099d8df2eb89a80352",
+     "changes": ""
+    }
+   ],
+   "name": "タイムボックス",
+   "author": "かるわか",
+   "description": "タスク名と分数を決めてタイマーを開始。メイン画面とオーバーレイに残り時間を出し、時間切れで通知します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "todo_panel",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/todo_panel/1.0.0/todo_panel.py",
+     "size": 2471,
+     "sha256": "4b70d01f455c14d2bb5c4ada866358eb5d3907bbd20f730b8f55972866e29f66",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "notify",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "4b70d01f455c14d2bb5c4ada866358eb5d3907bbd20f730b8f55972866e29f66",
+     "changes": ""
+    }
+   ],
+   "name": "ToDo リスト",
+   "author": "かるわか",
+   "description": "メイン画面に ToDo リストを置きます。入力して Enter で追加、チェックで完了。内容は保存されます。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "virtual_pet",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/virtual_pet/1.0.0/virtual_pet.py",
+     "size": 4094,
+     "sha256": "4d090835f9ca150576b5d4943d401e584deaaeaba4b91e8a4e2deadfcfac5695",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "dialog",
+      "notify",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "4d090835f9ca150576b5d4943d401e584deaaeaba4b91e8a4e2deadfcfac5695",
+     "changes": ""
+    }
+   ],
+   "name": "バーチャルペット",
+   "author": "かるわか",
+   "description": "作業するとペットが元気に育ちます。放っておくとお腹がすいてしょんぼり。作業時間で成長もします。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "vs_yesterday",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/vs_yesterday/1.0.0/vs_yesterday.py",
+     "size": 2747,
+     "sha256": "cad62525cad13df3f6a55dddf52d990bccd0afdfc45a8dbed93f44bad81b16e2",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "overlay",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "cad62525cad13df3f6a55dddf52d990bccd0afdfc45a8dbed93f44bad81b16e2",
+     "changes": ""
+    }
+   ],
+   "name": "自分との勝負",
+   "author": "かるわか",
+   "description": "昨日の同じ時刻と今日の作業時間を比べて、リードしているか表示します。オーバーレイにも出します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "water_reminder",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/water_reminder/1.0.0/water_reminder.py",
+     "size": 1979,
+     "sha256": "72b3d734420b8d3179489d27a2a313d9096d765340e7725a1d8d958c7c6c1576",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "notify",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "72b3d734420b8d3179489d27a2a313d9096d765340e7725a1d8d958c7c6c1576",
+     "changes": ""
+    }
+   ],
+   "name": "水分補給リマインダー",
+   "author": "かるわか",
+   "description": "作業1時間ごとに💧水分補給を知らせます。メイン画面のボタンで飲んだ杯数を記録できます（目標8杯）。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "weather_panel",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/weather_panel/1.0.0/weather_panel.py",
+     "size": 3775,
+     "sha256": "8ed6b647b13b80bc76bb26ccd1faf81e3a1006d5b6d66fda9c1d1d86568db0bc",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "dialog",
+      "network",
+      "panel",
+      "thread"
+     ],
+     "api": 1,
+     "source_sha256": "8ed6b647b13b80bc76bb26ccd1faf81e3a1006d5b6d66fda9c1d1d86568db0bc",
+     "changes": ""
+    }
+   ],
+   "name": "天気",
+   "author": "かるわか",
+   "description": "今の天気・気温・今日の最高/最低気温をメイン画面に表示します（Open-Meteo を使用、30分ごとに更新）。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "webhook_goal",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/webhook_goal/1.0.0/webhook_goal.py",
+     "size": 2700,
+     "sha256": "8d30fde6f548d31602677ba90f940af393c69812295c3e3c412c1822e305e2c3",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "dialog",
+      "network",
+      "thread"
+     ],
+     "api": 1,
+     "source_sha256": "8d30fde6f548d31602677ba90f940af393c69812295c3e3c412c1822e305e2c3",
+     "changes": ""
+    }
+   ],
+   "name": "目標達成を Webhook に投稿",
+   "author": "かるわか",
+   "description": "目標を達成したら Discord / Slack の Webhook に「🎉 目標達成！」を投稿します。URL は自分で設定します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "week_chart",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/week_chart/1.0.0/week_chart.py",
+     "size": 2288,
+     "sha256": "59f41dc4354e4db290585233d70b550d2e74a94affa770677c26a706075b455c",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "59f41dc4354e4db290585233d70b550d2e74a94affa770677c26a706075b455c",
+     "changes": ""
+    }
+   ],
+   "name": "7日間グラフ",
+   "author": "かるわか",
+   "description": "直近7日間の作業時間を棒グラフで表示します。目標の線も引きます。（記録はこの MOD を入れた日から）",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "weekly_goal",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/weekly_goal/1.0.0/weekly_goal.py",
+     "size": 2764,
+     "sha256": "5560fb2320d28ca80c52e022318affe6bc7156b3b325ec08e83e70cd65eabd70",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "dialog",
+      "notify",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "5560fb2320d28ca80c52e022318affe6bc7156b3b325ec08e83e70cd65eabd70",
+     "changes": ""
+    }
+   ],
+   "name": "週間目標",
+   "author": "かるわか",
+   "description": "月曜〜日曜の合計作業時間に目標を設定し、プログレスバーで表示します。達成したら通知します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
+  {
+   "id": "weekly_report_clip",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/weekly_report_clip/1.0.0/weekly_report_clip.py",
+     "size": 2184,
+     "sha256": "698b4a506aab9d6e73b27a2b15bf77ee61f62ecd49469f428305381e1dde5d36",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "notify"
+     ],
+     "api": 1,
+     "source_sha256": "698b4a506aab9d6e73b27a2b15bf77ee61f62ecd49469f428305381e1dde5d36",
+     "changes": ""
+    }
+   ],
+   "name": "週報コピー",
+   "author": "かるわか",
+   "description": "ボタン1つで直近7日の作業まとめをクリップボードにコピーします。チャットや週報に貼り付けて使えます。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T11:59:54Z"
+  },
   {
    "id": "plants",
    "versions": [
