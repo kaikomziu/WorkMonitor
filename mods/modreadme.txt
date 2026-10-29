@@ -1,5 +1,5 @@
 ==============================================================
-  WorkMonitor の MOD の作り方（Earo MOD ローダー / API 1）
+  WorkMonitor の MOD の作り方（Earo MOD ローダー / API 2）
 ==============================================================
 
 WorkMonitor には MOD ローダー「Earo」が入っています。
@@ -71,7 +71,8 @@ WorkMonitor の起動時（または MOD をオンにしたとき）に呼ばれ
         "version": "1.0.0",
         "author": "作者",
         "description": "説明（設定 → Mods に表示されます）",
-        "api": 1,          # 必要な Earo の API の版。今は 1
+        "api": 1,          # 必要な Earo の API の版（1: WorkMonitor 1.6.0〜 / 2: 1.7.0〜）
+                           # 「API 2 から」と書かれた機能を使うときは 2 にしてください
     }
 
   MOD_INFO は、プログラムを実行せずに読み取って一覧に表示します。
@@ -138,6 +139,15 @@ WorkMonitor の起動時（または MOD をオンにしたとき）に呼ばれ
     def add_emoji(text):
         return "🔥 " + text
 
+  "notify"  (text, title, mod_id)   【API 2 から】MOD が通知を出すとき（WorkMonitor 本体の通知は対象外）
+                                    False を返すとその通知を出さず、文字を返すと文を変えます。
+                                    mod_id は通知を出そうとした MOD の ID（自分なら api.id）
+
+    @api.filter("notify")
+    def mute_at_night(text, title, mod_id):
+        if mod_id != api.id and 22 <= datetime.now().hour:
+            return False
+
 
 --------------------------------------------------------------
  7. 画面に足す
@@ -174,6 +184,10 @@ WorkMonitor の起動時（または MOD をオンにしたとき）に呼ばれ
   api.after(ms, func, *args)     ms ミリ秒後に func を呼ぶ（取り消すときは api.cancel(戻り値)）
                                   くり返したいときは、func の中でもう一度 api.after を呼ぶ
   api.call_soon(func, *args)     別スレッドから、画面のスレッドで func を呼んでもらう
+  api.open_path(path)            【API 2 から】フォルダか、見るだけのファイル（.html .md .txt .csv .json
+                                  .log .png .jpg .gif .svg .pdf）を Windows の既定のアプリで開く。
+                                  .exe や .bat などプログラムとして動くファイルは開かず False を返す
+                                  （os.startfile は公開する MOD では使えないので、こちらを使ってください）
   api.data                       MOD 専用の保存用 dict（起動時に読み込まれる）
   api.save_data()                api.data をファイルに保存する
                                   （%APPDATA%\WorkMonitor\mod_data\<MOD の ID>.json）
@@ -272,7 +286,13 @@ WorkMonitor の起動時（または MOD をオンにしたとき）に呼ばれ
       ほかの物の非公開の値（api._loader のような _ で始まる名前。自分のクラスの self._x はよい）
     ・getattr(x, 名前の変数) のように、名前を組み立てて使う書き方
     ・見えない文字、1行 2000 文字を超える行、5000 文字を超える文字列
-    ・tkinter.Tk() の作成（ウィンドウは tkinter.Toplevel(api.root) で作ってください）
+    ・tkinter.Tk() / tkinter.Tcl() の作成と「.tk」の利用（Tcl のコマンドでプログラムを起動できるため）。
+      ウィンドウは tkinter.Toplevel(api.root) で作ってください
+    ・webbrowser.open に https:// で始まる URL 以外を渡すこと（URL はそのまま書いてください。
+      ファイルやフォルダを開くときは api.open_path）、webbrowser.get
+    ・api の機能の書き換え（api.notify = ... や type(api) など。ほかの MOD の通知を
+      止めたいときは notify フィルターを使ってください）
+    ・クリップボードや画面の読み取り（clipboard_get、PIL.ImageGrab）、スタートアップへの登録
   通信・ファイルの読み書き・スレッドなどは使えますが、公式サイトの一覧に
   「この MOD が行うこと」として表示されます。
 

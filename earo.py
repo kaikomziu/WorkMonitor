@@ -28,8 +28,8 @@ import calendar, csv, datetime, hashlib, math, random, statistics, string, textw
 from tkinter import colorchooser, filedialog, simpledialog  # noqa: F401,E402
 
 LOADER_NAME = "Earo"
-LOADER_VERSION = "1.0.0"
-API_VERSION = 1                 # MOD_INFO["api"] がこれより大きい MOD は読み込まない
+LOADER_VERSION = "1.1.0"
+API_VERSION = 2                 # MOD_INFO["api"] がこれより大きい MOD は読み込まない（2: open_path と notify フィルター）
 MODS_DIR = os.path.join(core.DATA_DIR, "mods")
 MOD_DATA_DIR = os.path.join(core.DATA_DIR, "mod_data")
 # 同梱の modreadme.txt と作例（exe 版は展開先の一時フォルダ、Python 版はこのファイルの隣）
@@ -38,7 +38,9 @@ README_NAME = "modreadme.txt"
 EXAMPLES_NAME = "examples"
 MAX_ERRORS = 10                 # これだけエラーが続いたら、その MOD を止める
 EVENTS = ("tick", "state_change", "app_change", "goal_reached", "day_change", "quit")
-FILTERS = ("overlay_text", "discord_text")
+FILTERS = ("overlay_text", "discord_text", "notify")
+# api.open_path で開いてよいもの（プログラムとして動くファイルは開かない）
+OPEN_EXTENSIONS = {".html", ".htm", ".md", ".txt", ".csv", ".json", ".log", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".pdf"}
 STATUS_TEXT = {"off": "オフ", "on": "✓ 動作中", "error": "✗ エラー", "stopped": "✗ 停止（エラーが続いた）",
                "waiting": "待機（MOD 読み込みがオフ）"}
 
@@ -194,7 +196,26 @@ class ModAPI:
         self._loader._changed()
 
     def notify(self, text, title=None):
-        self._loader.app._notify(str(text), title or self._mod.name)
+        title = title or self._mod.name
+        # notify フィルター（おやすみモードなど）。False を返すと通知を出さない
+        for mod, func in self._loader._chains.get("notify", ()):
+            result = self._loader._call(mod, func, str(text), title, self.id, default=None)
+            if result is False:
+                return
+            if isinstance(result, str):
+                text = result
+        self._loader.app._notify(str(text), title)
+
+    def open_path(self, path):
+        """フォルダか、見るだけのファイル（.html .md .txt .csv .png .pdf など）を Windows の既定のアプリで開く。
+        プログラムとして動くファイル（.exe .bat .py など）は開かない → 開けたら True"""
+        path = os.path.abspath(str(path))
+        ok = os.path.isdir(path) or (os.path.isfile(path) and os.path.splitext(path)[1].lower() in OPEN_EXTENSIONS)
+        if not ok:
+            self.log("開けないファイルです（フォルダか、見るだけのファイルだけ開けます）:", path)
+            return False
+        os.startfile(path)
+        return True
 
     def after(self, ms, func, *args):
         """ms ミリ秒後に func を画面のスレッドで呼ぶ。MOD を止めると自動で取り消す"""

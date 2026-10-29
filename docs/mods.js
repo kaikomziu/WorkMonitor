@@ -5,11 +5,14 @@ const MOD_FILE = /^[a-z0-9][a-z0-9_-]{1,39}\.(py|zip)$/;
 const MAX_SIZE = 512 * 1024;
 // tools/mod_review.py の PERMISSIONS と同じ
 const PERMISSIONS = {
+  open: 'フォルダやファイル（見るだけのもの）を開きます', notify_filter: 'ほかの MOD の通知を止めたり変えたりします',
   network: 'インターネットに接続します', browser: 'ブラウザでページを開きます', file_write: 'ファイルを書き込みます',
   file_read: 'ファイルを読み込みます', wm_logs: 'WorkMonitor の作業記録を読みます', thread: '裏で処理を動かします',
   panel: 'メイン画面に表示を追加します', overlay: 'オーバーレイの表示を変えます', discord: 'Discord の表示を変えます',
   notify: '通知を出します', sound: '音を鳴らします', dialog: 'ウィンドウを開きます',
 };
+// MOD_INFO の api → 必要な WorkMonitor のバージョン
+const API_APP = { 1: '1.6.0', 2: '1.7.0' };
 const STATUS = { pending: ['審査待ち', 'wait'], reviewing: ['審査中', 'wait'], approved: ['✓ 公開', 'ok'], rejected: ['✗ 不合格', 'ng'] };
 const ERRORS = {
   'wm:auth': 'ログインしてください。',
@@ -85,6 +88,7 @@ function card(m) {
     el('p', { class: 'desc', text: m.description }),
     v.changes ? el('p', { class: 'changes', text: `v${v.version} の更新内容: ${v.changes}` }) : null,
     el('div', { class: 'perms' }, el('span', { class: 'tag ok', text: '✓ 自動審査済み' }),
+      (v.api || 1) > 1 ? el('span', { class: 'tag wait', text: `WorkMonitor ${API_APP[v.api] || API_APP[2]} 以降が必要` }) : null,
       ...(perms.length ? perms : [el('span', { class: 'tag', text: '通信・ファイル操作なし' })])),
     el('div', { class: 'foot' },
       el('a', { class: 'btn primary', href: v.file, download: v.file.split('/').pop(), text: `ダウンロード（${fmtSize(v.size)}）` }),

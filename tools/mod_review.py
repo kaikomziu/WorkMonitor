@@ -31,7 +31,7 @@ MAX_FILE = 1024 * 1024
 MAX_TOTAL = 2 * 1024 * 1024
 MAX_LINE = 2000
 MAX_STRING = 5000
-API_VERSION = 1
+API_VERSION = 2   # earo.API_VERSION と同じ
 ALLOWED_EXT = {".py", ".txt", ".md", ".json", ".csv", ".png", ".jpg", ".jpeg", ".gif", ".ico", ".wav"}
 
 # ---- 使えないモジュール（理由） ----
@@ -48,6 +48,8 @@ BLOCK_MODULES = {
     "win32crypt": "保存されたパスワードを復号できるため", "win32clipboard": _NATIVE, "pywintypes": _NATIVE,
     "pickle": _DYN, "_pickle": _DYN, "marshal": _DYN, "shelve": _DYN, "dill": _DYN, "importlib": _DYN,
     "imp": _DYN, "runpy": _DYN, "code": _DYN, "codeop": _DYN, "zipimport": _DYN, "pkgutil": _DYN,
+    "pydoc": _EXEC + "（pydoc.pipepager）", "logging.config": "外から送られた設定でコードを実行できるため",
+    "PIL.ImageGrab": "画面やクリップボードの画像を読み取れるため",
     "builtins": _DYN, "inspect": "アプリの内部の変数を読み書きできるため", "gc": "アプリの内部の変数を読み書きできるため",
     "socket": "通信の仕組みを直接使えるため（通信は urllib.request を使ってください）",
     "socketserver": "外からの接続を受け付けられるため", "http.server": "外からの接続を受け付けられるため",
@@ -71,7 +73,13 @@ BLOCK_CALLS = {
     "sys.settrace": "アプリの動きを書き換えられるため", "sys.setprofile": "アプリの動きを書き換えられるため",
     "sys._getframe": "アプリの内部の変数を読み書きできるため", "sys.addaudithook": "アプリの動きを書き換えられるため",
     "tkinter.Tk": "ウィンドウは api.root を親にして作ってください（Tk を2つ作るとアプリが不安定になります）",
+    "tkinter.Tcl": "Tcl のコマンドでほかのプログラムを起動できるため",
+    "webbrowser.get": "ブラウザの代わりに好きなコマンドを実行できるため", "webbrowser.register": "好きなコマンドを実行できるため",
+    "concurrent.futures.ProcessPoolExecutor": _EXEC, "types.CodeType": "コードを組み立てて実行できるため",
+    "types.FunctionType": "コードを組み立てて実行できるため",
 }
+# webbrowser.open は Windows ではファイルを開く（＝プログラムも起動できる）ので、https:// / http:// の URL だけ許す
+WEB_OPEN = {"webbrowser.open", "webbrowser.open_new", "webbrowser.open_new_tab"}
 BLOCK_CALL_PREFIXES = {"os.exec": _EXEC, "os.spawn": _EXEC, "os.posix_spawn": _EXEC}
 BLOCK_SYS_ATTRS = {"modules", "meta_path", "path_hooks", "path_importer_cache", "settrace", "setprofile",
                    "_getframe", "addaudithook", "stdin"}
@@ -85,6 +93,8 @@ BLOCK_ATTRS = {
     "f_globals": "アプリの内部の変数を読み書きできるため", "f_locals": "アプリの内部の変数を読み書きできるため",
     "f_back": "アプリの内部の変数を読み書きできるため", "gi_frame": "アプリの内部の変数を読み書きできるため",
     "tb_frame": "アプリの内部の変数を読み書きできるため", "cloud": _INTERNAL,
+    "tk": "Tcl のコマンド（exec など）でほかのプログラムを起動できるため",
+    "clipboard_get": "クリップボードの中身を読めるため", "selection_get": "クリップボードの中身を読めるため",
     "app": "公開する MOD では WorkMonitor 本体（api.app）は使えません。api の機能を使ってください",
 }
 SAFE_DUNDER = {"__name__", "__doc__", "__file__", "__init__", "__class__", "__version__", "__all__", "__main__",
@@ -104,6 +114,8 @@ SENSITIVE_STRINGS = [
     (re.compile(r"discord(canary|ptb)?[\\/]+local storage", re.I), "Discord のトークン"),
     (re.compile(r"\btelegram desktop\b|tdata", re.I), "Telegram のログイン情報"),
     (re.compile(r"mod_data[\\/]", re.I), "ほかの MOD の保存データ"),
+    (re.compile(r"start menu[\\/]+programs[\\/]+startup|\\startup\\|shell:startup", re.I), "スタートアップ（Windows の起動時に動くもの）"),
+    (re.compile(r"currentversion[\\/]+run", re.I), "スタートアップ（Windows の起動時に動くもの）"),
 ]
 WM_LOGS = re.compile(r"workmonitor.*logs|logs.*\.csv", re.I)
 # 見えない文字。ただし絵文字をつなぐ ZWJ（例: 😮‍💨）は、前後が絵文字なら問題ないので除く
@@ -125,6 +137,8 @@ PERMISSIONS = {
     "notify": "通知を出します",
     "sound": "音を鳴らします",
     "dialog": "ウィンドウを開きます",
+    "open": "フォルダやファイル（見るだけのもの）を開きます",
+    "notify_filter": "ほかの MOD の通知を止めたり変えたりします",
 }
 
 
@@ -318,6 +332,11 @@ class Scanner(ast.NodeVisitor):
                 reason = next((r for p, r in BLOCK_CALL_PREFIXES.items() if name.startswith(p)), None)
             if reason:
                 self.block(node, f"「{name}」は使えません（{reason}）。")
+            if name in WEB_OPEN and not self._is_web_url(node.args[0] if node.args else None):
+                self.block(node, f"「{name}」には https:// で始まる URL を、そのまま書いて渡してください"
+                                 "（ファイルやプログラムを開けてしまうため。ファイルやフォルダは api.open_path で開けます）。")
+            if name == "type" and len(node.args) == 1:
+                self.block(node, "「type(...)」は使えません（api などのクラスを書き換えられるため。isinstance を使ってください）。")
             if name in ("getattr", "setattr", "delattr", "hasattr") and len(node.args) >= 2:
                 arg = node.args[1]
                 if not (isinstance(arg, ast.Constant) and isinstance(arg.value, str)):
@@ -337,6 +356,8 @@ class Scanner(ast.NodeVisitor):
             if name.endswith((".read_text", ".read_bytes")) or name in ("os.listdir", "os.scandir", "os.walk", "glob.glob"):
                 self.r.permissions.add("file_read")
             last = name.split(".")[-1]
+            if last == "open_path":
+                self.r.permissions.add("open")
             if last == "add_panel":
                 self.r.permissions.add("panel")
             elif last == "notify":
@@ -347,9 +368,31 @@ class Scanner(ast.NodeVisitor):
                     self.r.permissions.add("overlay")
                 elif kind == "discord_text":
                     self.r.permissions.add("discord")
+                elif kind == "notify":
+                    self.r.permissions.add("notify_filter")
             elif name.startswith(("tkinter.messagebox", "tkinter.filedialog", "tkinter.simpledialog", "tkinter.Toplevel")) \
                     or name in ("Toplevel", "tk.Toplevel"):
                 self.r.permissions.add("dialog")
+        self.generic_visit(node)
+
+    @staticmethod
+    def _is_web_url(arg):
+        """https:// か http:// で始まる文字（f"https://...{q}" も可）か"""
+        if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+            first = arg.value
+        elif isinstance(arg, ast.JoinedStr) and arg.values and isinstance(arg.values[0], ast.Constant):
+            first = str(arg.values[0].value)
+        elif isinstance(arg, ast.BinOp) and isinstance(arg.op, ast.Add):
+            return Scanner._is_web_url(arg.left)
+        else:
+            return False
+        return re.match(r"https?://[^/\s]+", first, re.I) is not None
+
+    def visit_Assign(self, node):
+        # api.notify = ... のように、api の機能を差し替えるのは禁止（ほかの MOD にも影響するため）
+        for t in node.targets:
+            if isinstance(t, ast.Attribute) and isinstance(t.value, ast.Name) and t.value.id == "api" and t.attr != "data":
+                self.block(node, f"「api.{t.attr}」は書き換えられません（ほかの MOD にも影響するため）。")
         self.generic_visit(node)
 
     def _attr_name(self, attr, node, base):

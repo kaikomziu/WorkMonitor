@@ -1,6 +1,80 @@
 {
- "updated": "2026-10-29T11:59:54Z",
+ "updated": "2026-10-29T12:41:23Z",
  "mods": [
+  {
+   "id": "daily_report",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/daily_report/1.0.0/daily_report.py",
+     "size": 2539,
+     "sha256": "334d181455fe91d415b5daaedb60298f5f7e2f1cc0bd19111904ae0487de596d",
+     "published": "2026-10-29T12:41:23Z",
+     "permissions": [
+      "file_write",
+      "notify",
+      "open"
+     ],
+     "api": 2,
+     "source_sha256": "334d181455fe91d415b5daaedb60298f5f7e2f1cc0bd19111904ae0487de596d",
+     "changes": ""
+    }
+   ],
+   "name": "日報の自動作成",
+   "author": "かるわか",
+   "description": "日付が変わると前日の内訳を Markdown の日報にして「ドキュメント\\WorkMonitor日報」に保存します。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T12:41:23Z"
+  },
+  {
+   "id": "html_report",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/html_report/1.0.0/html_report.py",
+     "size": 4394,
+     "sha256": "28d7de513d499754a5a50d0c751964abf768b83a6128bf624e05666887021f98",
+     "published": "2026-10-29T12:41:23Z",
+     "permissions": [
+      "file_write",
+      "open"
+     ],
+     "api": 2,
+     "source_sha256": "28d7de513d499754a5a50d0c751964abf768b83a6128bf624e05666887021f98",
+     "changes": ""
+    }
+   ],
+   "name": "HTML レポート",
+   "author": "かるわか",
+   "description": "直近30日の作業時間グラフとアプリ別ランキングの HTML レポートを作り、ブラウザで開きます。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T12:41:23Z"
+  },
+  {
+   "id": "quiet_hours",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/quiet_hours/1.0.0/quiet_hours.py",
+     "size": 2146,
+     "sha256": "82c4dc5c500a9dc479875c9ca331d9bb64ff0e624a2d78f402da78fa9ef88f02",
+     "published": "2026-10-29T12:41:23Z",
+     "permissions": [
+      "dialog",
+      "notify",
+      "notify_filter"
+     ],
+     "api": 2,
+     "source_sha256": "82c4dc5c500a9dc479875c9ca331d9bb64ff0e624a2d78f402da78fa9ef88f02",
+     "changes": ""
+    }
+   ],
+   "name": "おやすみモード",
+   "author": "かるわか",
+   "description": "決めた時間帯（初期 22:00〜7:00）は、ほかの MOD の通知を止めます。止めた通知はログに残ります。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T12:41:23Z"
+  },
   {
    "id": "achievements",
    "versions": [
