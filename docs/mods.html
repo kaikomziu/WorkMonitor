@@ -18,7 +18,7 @@
   .hidden { display: none !important; }
 
   /* 左のタブ + 右の中身 */
-  .layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 28px; padding: 28px 0 40px; align-items: start; }
+  .layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 28px; padding-top: 28px; padding-bottom: 40px; align-items: start; }
   .side { position: sticky; top: 76px; }
   .side h1 { font-size: 22px; margin: 0 0 12px 4px; }
   .tabs-v { display: flex; flex-direction: column; gap: 4px; }
@@ -118,6 +118,7 @@
     <a class="logo" href="./"><img src="icon.png" alt="">WorkMonitor</a>
     <div class="spacer"></div>
     <div class="links">
+      <a class="text hide-sm" href="guide.html">使い方</a>
       <a class="text hide-sm" href="./#download">アプリをダウンロード</a>
       <button class="icon-btn" data-theme-toggle></button>
       <a class="btn primary" href="app.html" id="nav-login">ログイン</a>
@@ -281,6 +282,10 @@
         </ul>
       </div>
       <div class="card">
+        <b>もっとくわしく</b>
+        <p class="sub" style="margin:6px 0 0"><a href="guide.html#mods">使い方ガイドの「MOD」</a>に、入れ方・管理・自動更新・作り方・投稿のしかたをまとめています。</p>
+      </div>
+      <div class="card">
         <b>問題のある MOD を見つけたら</b>
         <p class="sub" style="margin:6px 0 0"><a href="https://github.com/kaikomziu/WorkMonitor/issues">GitHub の Issues</a> でお知らせください（MOD の名前を書いてください）。</p>
       </div>
@@ -291,7 +296,7 @@
 <footer>
   <div class="wrap">
     <span>WorkMonitor ・ 運営：かるわか</span>
-    <span><a href="terms.html">利用規約</a> ・ <a href="privacy.html">プライバシーポリシー</a> ・ <a href="https://github.com/kaikomziu/WorkMonitor">GitHub</a></span>
+    <span><a href="guide.html">使い方</a> ・ <a href="terms.html">利用規約</a> ・ <a href="privacy.html">プライバシーポリシー</a> ・ <a href="https://github.com/kaikomziu/WorkMonitor">GitHub</a></span>
   </div>
 </footer>
 

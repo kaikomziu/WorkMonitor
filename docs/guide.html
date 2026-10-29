@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>使い方ガイド - WorkMonitor</title>
+<meta name="description" content="WorkMonitor の使い方。インストール、作業時間の数え方、設定、目標、ダッシュボード、オーバーレイ、Discord、アカウントと同期、MOD、困ったときの対処まで。">
+<link rel="icon" href="icon.png">
+<link rel="stylesheet" href="style.css">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<script src="common.js"></script>
+<style>
+  .layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 36px; padding-top: 28px; padding-bottom: 60px; align-items: start; }
+  .toc { position: sticky; top: 76px; max-height: calc(100vh - 96px); overflow-y: auto; padding-right: 4px; }
+  .toc h1 { font-size: 20px; margin: 0 0 12px 8px; }
+  .toc a { display: block; color: var(--sub); text-decoration: none; padding: 6px 10px; border-radius: 8px; font-size: 14px; }
+  .toc a:hover { background: var(--card); color: var(--text); }
+  .toc a.on { background: var(--soft); color: var(--accent); font-weight: 600; }
+  .toc .group { font-size: 12px; color: var(--sub); margin: 14px 0 4px 10px; font-weight: 600; letter-spacing: .04em; }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: minmax(0, 1fr); gap: 8px; padding-top: 16px; }
+    .doc h1 { font-size: 26px !important; }
+    .toc { position: static; max-height: none; }
+  }
+  .toc details summary { display: none; }
+  @media (max-width: 900px) {
+    .toc details summary { display: block; cursor: pointer; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); font-weight: 600; }
+    .toc h1 { display: none; }
+  }
+
+  .doc { max-width: 820px; }
+  .doc .lead { font-size: 17px; color: var(--sub); margin: 0 0 8px; }
+  .doc section { scroll-margin-top: 80px; padding-top: 12px; margin-bottom: 40px; }
+  .doc h2 { font-size: 24px; margin: 0 0 12px; display: flex; align-items: center; gap: 10px; }
+  .doc h2 .no { font-size: 13px; background: var(--soft); color: var(--accent); border-radius: 999px; padding: 2px 10px; font-weight: 700; }
+  .doc h3 { font-size: 17px; margin: 22px 0 8px; }
+  .doc p, .doc li { line-height: 1.85; }
+  .doc ul, .doc ol { padding-left: 1.4em; }
+  .doc code, .doc kbd { background: var(--card); border: 1px solid var(--line); border-radius: 5px; padding: 0 6px; font-size: 13px; }
+  .doc kbd { font-family: Consolas, monospace; }
+  .ui { font-weight: 600; color: var(--text); background: var(--soft); border-radius: 5px; padding: 0 6px; white-space: nowrap; }
+  .box { border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 14px 18px; margin: 14px 0; }
+  .box.tip { border-color: color-mix(in srgb, var(--up) 45%, var(--line)); }
+  .box.tip::before { content: "💡 ヒント"; display: block; font-weight: 700; color: var(--up); margin-bottom: 4px; }
+  .box.warn { border-color: color-mix(in srgb, #e2a03f 55%, var(--line)); background: color-mix(in srgb, #e2a03f 7%, var(--card)); }
+  .box.warn::before { content: "⚠ 注意"; display: block; font-weight: 700; color: #c27c0e; margin-bottom: 4px; }
+  .box p:last-child, .box ul:last-child, .box ol:last-child { margin-bottom: 0; }
+  .box p:first-of-type { margin-top: 0; }
+  .steps { counter-reset: s; list-style: none; padding: 0 !important; }
+  .steps > li { counter-increment: s; position: relative; padding-left: 44px; margin: 12px 0; }
+  .steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent); color: var(--accent-text); font-weight: 700; display: grid; place-items: center; font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 10px 0; }
+  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--sub); font-weight: 600; white-space: nowrap; }
+  .scroll { overflow-x: auto; }
+  .dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; vertical-align: middle; margin-right: 6px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px; margin: 14px 0; }
+  .cards a { text-decoration: none; color: inherit; }
+  .cards .card:hover { border-color: var(--accent); }
+  .cards .ico { font-size: 22px; }
+  .cards b { display: block; margin: 4px 0 2px; }
+  .cards span { color: var(--sub); font-size: 13px; }
+  details.faq { border-bottom: 1px solid var(--line); padding: 12px 0; }
+  details.faq summary { cursor: pointer; font-weight: 600; }
+  details.faq p, details.faq ul { color: var(--sub); }
+
+  /* アプリ画面の見本（番号つき） */
+  .figure { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 24px; align-items: start; margin: 16px 0; }
+  @media (max-width: 700px) { .figure { grid-template-columns: minmax(0, 1fr); } }
+  .mock { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; font-size: 13px;
+    box-shadow: 0 16px 40px -24px rgba(20, 30, 60, .35); }
+  .mock .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .mock .muted { color: var(--sub); }
+  .mock .time { font: 700 38px "Segoe UI", sans-serif; letter-spacing: -.02em; margin: 2px 0; }
+  .mock .state { color: #22a06b; font-weight: 700; }
+  .mock .track { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; margin-top: 6px; }
+  .mock .track i { display: block; height: 100%; width: 60%; background: var(--accent); }
+  .mock .bars { margin-top: 8px; display: grid; gap: 5px; }
+  .mock .bars div { display: grid; grid-template-columns: 70px 1fr 54px; gap: 6px; align-items: center; }
+  .mock .bars b { height: 5px; border-radius: 3px; display: block; }
+  .mock .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px; }
+  .mock .btns span { border: 1px solid var(--line); border-radius: 8px; padding: 6px; text-align: center; font-size: 12px; }
+  .mock .btns span.p { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+  .mock hr { border: 0; border-top: 1px solid var(--line); margin: 10px 0; }
+  .n { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #e2a03f; color: #fff;
+    font-size: 11px; font-weight: 700; flex: none; vertical-align: middle; }
+  .legend { list-style: none; padding: 0 !important; margin: 0; }
+  .legend li { display: flex; gap: 10px; margin: 8px 0; line-height: 1.6; }
+  .ver { font-size: 12px; color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line)); border-radius: 999px; padding: 0 8px; margin-left: 6px; font-weight: 600; vertical-align: middle; }
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div class="wrap">
+    <a class="logo" href="./"><img src="icon.png" alt="">WorkMonitor</a>
+    <div class="spacer"></div>
+    <div class="links">
+      <a class="text hide-sm" href="./#download">ダウンロード</a>
+      <a class="text" href="mods.html">MOD</a>
+      <button class="icon-btn" data-theme-toggle></button>
+      <a class="btn primary" href="app.html">ログイン</a>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap layout">
+  <aside class="toc">
+    <h1>使い方ガイド</h1>
+    <details id="toc-details">
+      <summary>📖 目次を開く</summary>
+      <nav id="toc" aria-label="目次">
+        <div class="group">はじめる</div>
+        <a href="#install">インストール</a>
+        <a href="#first">はじめの設定</a>
+        <a href="#main">メイン画面の見方</a>
+        <div class="group">記録のしくみ</div>
+        <a href="#counting">作業時間の数え方</a>
+        <a href="#apps">アプリ別の設定</a>
+        <a href="#goal">目標と通知</a>
+        <div class="group">見る・表示する</div>
+        <a href="#dashboard">ダッシュボード</a>
+        <a href="#overlay">オーバーレイ</a>
+        <a href="#discord">Discord に表示</a>
+        <div class="group">アカウント</div>
+        <a href="#account">アカウントと同期</a>
+        <a href="#web">ウェブで記録を見る</a>
+        <a href="#delete">記録・アカウントの削除</a>
+        <div class="group">MOD</div>
+        <a href="#mods">MOD を入れる</a>
+        <a href="#mods-manage">MOD の管理と自動更新</a>
+        <a href="#mods-make">MOD を作る・投稿する</a>
+        <div class="group">そのほか</div>
+        <a href="#settings">設定の一覧</a>
+        <a href="#tray">タスクトレイ・自動起動</a>
+        <a href="#update">アップデート</a>
+        <a href="#data">データの場所・バックアップ</a>
+        <a href="#trouble">困ったとき</a>
+        <a href="#contact">お問い合わせ</a>
+      </nav>
+    </details>
+  </aside>
+
+  <article class="doc">
+    <h1 style="font-size:32px;margin:0 0 8px">使い方ガイド</h1>
+    <p class="lead">WorkMonitor は、キーボードやマウスを操作している時間だけを「作業時間」として記録する、Windows 用のアプリです。このページでは、インストールから MOD まで、すべての機能の使い方を説明します。</p>
+
+    <div class="cards">
+      <a href="#install"><div class="card"><div class="ico">⬇️</div><b>まずは入れる</b><span>インストールと最初の設定</span></div></a>
+      <a href="#counting"><div class="card"><div class="ico">⏱️</div><b>数え方を知る</b><span>どの時間が作業になるか</span></div></a>
+      <a href="#account"><div class="card"><div class="ico">☁️</div><b>スマホでも見る</b><span>アカウントと同期</span></div></a>
+      <a href="#mods"><div class="card"><div class="ico">🧩</div><b>機能を足す</b><span>MOD ストアの使い方</span></div></a>
+    </div>
+
+    <!-- ===================== はじめる ===================== -->
+    <section id="install">
+      <h2><span class="no">1</span>インストール</h2>
+      <p>Windows 10 / 11 で使えます。<a href="./#download">ダウンロード</a>から、次のどちらかを選んでください。中身は同じです。</p>
+      <div class="scroll"><table>
+        <tr><th>種類</th><th>向いている人</th><th>入れ方</th></tr>
+        <tr><td><b>インストーラー</b>（おすすめ）<br><code>WorkMonitor-Setup.exe</code></td><td>ふつうに使いたい人</td><td>ダウンロードして開き、画面の案内に沿って進めます。管理者の権限は要りません。スタートメニューに「WorkMonitor」が入ります。</td></tr>
+        <tr><td><b>ZIP 版</b><br><code>WorkMonitor.zip</code></td><td>インストールしたくない人、USB メモリで持ち歩きたい人</td><td>展開して、中の <code>WorkMonitor.exe</code> をダブルクリックするだけです。</td></tr>
+      </table></div>
+      <div class="box warn">
+        <p>初めて開くと「<b>Windows によって PC が保護されました</b>」と出ることがあります。個人が作った、署名のないアプリのためです。<span class="ui">詳細情報</span> → <span class="ui">実行</span> の順に押すと起動できます。</p>
+        <p>心配な場合は、リリースに付いている <code>SHA256SUMS.txt</code> の値と、ダウンロードしたファイルの SHA-256 が同じかを確かめてください（PowerShell で <code>Get-FileHash ファイル名</code>）。</p>
+      </div>
+    </section>
+
+    <section id="first">
+      <h2><span class="no">2</span>はじめの設定</h2>
+      <p>入れたらすぐに記録が始まります。次の3つだけ決めておくと便利です。どれもメイン画面の <span class="ui">⚙ 設定</span> から変えられます。</p>
+      <ol class="steps">
+        <li><b>1日の目標を決める</b>（<span class="ui">一般</span>）<br>初期は 3 時間です。0 にすると目標なしになります。</li>
+        <li><b>数えたくないアプリを外す</b>（<span class="ui">アプリ別</span>）<br>ゲームや動画サイトなどを「作業に数えない」にします。逆に「選んだアプリだけ数える」方式にもできます（<a href="#apps">アプリ別の設定</a>）。</li>
+        <li><b>Windows の起動時に自動で起動する</b>（<span class="ui">一般</span>）<br>オンにすると、毎回起動しなくても記録が続きます。</li>
+      </ol>
+      <div class="box tip"><p>ウィンドウを閉じても、アプリは画面右下のタスクトレイで記録を続けます。完全に終わらせるときは、トレイのアイコンを右クリックして <span class="ui">終了</span> を選びます。</p></div>
+    </section>
+
+    <section id="main">
+      <h2><span class="no">3</span>メイン画面の見方</h2>
+      <div class="figure">
+        <div class="mock" aria-hidden="true">
+          <div class="row"><span class="muted"><span class="n">1</span> 今日の作業時間</span><span class="muted">🌙 ダーク　最前面 <span class="n">8</span></span></div>
+          <div class="time">3:12:45</div>
+          <div class="state"><span class="n">2</span> ● 作業中</div>
+          <div class="muted">VS Code（開発）・今日 1時間48分</div>
+          <div class="row" style="margin-top:10px"><span><span class="n">3</span> 目標 5時間 まで あと1時間47分</span><span style="color:#e2a03f">🔥 4日連続</span></div>
+          <div class="track"><i></i></div>
+          <hr>
+          <div class="muted"><span class="n">4</span> 今日のアプリ別</div>
+          <div class="bars">
+            <div><span>VS Code</span><b style="background:#4f6bed"></b><span class="muted">1時間48分</span></div>
+            <div><span>Chrome</span><b style="background:#22a06b;width:55%"></b><span class="muted">0時間56分</span></div>
+          </div>
+          <hr>
+          <div class="muted"><span class="n">5</span> MOD の表示（入れた MOD による）</div>
+          <hr>
+          <div class="muted"><span class="n">6</span> ボタン</div>
+          <div class="btns"><span class="p">📊 ダッシュボード</span><span class="p">🌐 ウェブで見る</span><span>🪟 オーバーレイ</span><span>⚙ 設定</span></div>
+          <div class="muted" style="margin-top:6px"><span class="n">7</span> Discord: 表示中 ／ アカウント: 同期済み</div>
+        </div>
+        <ul class="legend">
+          <li><span class="n">1</span><span><b>今日の作業時間</b>。操作していた時間だけが増えます。</span></li>
+          <li><span class="n">2</span><span><b>いまの状態</b>。<span class="dot" style="background:#22a06b"></span>作業中（数えている）／<span class="dot" style="background:#8a919c"></span>休憩中（操作していない）／<span class="dot" style="background:#e2a03f"></span>数えないアプリを使用中。下に前面のアプリ名と、そのアプリの今日の時間が出ます。</span></li>
+          <li><span class="n">3</span><span><b>1日の目標</b>までの残りと進み具合。🔥 は目標を連続で達成した日数です。</span></li>
+          <li><span class="n">4</span><span><b>今日のアプリ別</b>の時間（多い順に5つ）。</span></li>
+          <li><span class="n">5</span><span><b>MOD の表示</b>。MOD を入れると、ここに枠が増えることがあります。</span></li>
+          <li><span class="n">6</span><span><b>ボタン</b>。ダッシュボード（PC の記録のグラフ）、ウェブで見る、オーバーレイの表示／非表示、設定。</span></li>
+          <li><span class="n">7</span><span><b>Discord とアカウントの状態</b>。アカウントの行を押すと、設定のアカウントが開きます。</span></li>
+          <li><span class="n">8</span><span><b>テーマの切り替え</b>（ライト／ダーク）と、<b>最前面</b>（ほかのウィンドウより上に出し続ける）。</span></li>
+        </ul>
+      </div>
+      <p>タスクトレイのアイコンの色も、状態と同じ（緑・灰・オレンジ）です。アイコンにマウスを乗せると今日の作業時間が出ます。</p>
+    </section>
+
+    <!-- ===================== 記録のしくみ ===================== -->
+    <section id="counting">
+      <h2><span class="no">4</span>作業時間の数え方</h2>
+      <p>WorkMonitor は <b>1秒ごとに</b>、最後にキーボードやマウスを操作した時刻と、前面にあるアプリを調べます。</p>
+      <ul>
+        <li><b>操作している間だけ数えます。</b>最後の操作から一定の秒数（初期は <b>60秒</b>）たつと「休憩中」になり、時間が止まります。休憩中になったときは、最後に操作した時刻までさかのぼって数えるので、放置した時間は入りません。</li>
+        <li><b>前面のアプリで判断します。</b>「数えない」にしたアプリが前面にあるときは、操作していても数えません。</li>
+        <li>WorkMonitor 自身、Python、Windows の機能（スタートメニュー、検索、設定、エクスプローラーなど）は、最初から数えない設定です。</li>
+        <li>ブラウザは、サイトの名前ごとにまとめて記録します（ページのタイトルが変わるたびに別の作業にはなりません）。</li>
+      </ul>
+      <div class="box tip"><p>動画を見ながらメモを取る、資料を読む時間が長い、など操作が少ない作業が多い人は、<span class="ui">設定 → 一般 → 無操作で「休憩中」にするまでの秒数</span> を長め（120〜300 秒など）にしてください。</p></div>
+    </section>
+
+    <section id="apps">
+      <h2><span class="no">5</span>アプリ別の設定</h2>
+      <p><span class="ui">設定 → アプリ別</span> で、アプリごとに次のことを決められます。一覧には、これまでに使ったアプリが出ます。一覧にないアプリは、下の欄に exe の名前（例: <code>notepad.exe</code>）を入れて追加できます。</p>
+      <div class="scroll"><table>
+        <tr><th>項目</th><th>内容</th></tr>
+        <tr><td>表示名</td><td>グラフや一覧に出る名前（例: <code>Code.exe</code> → 「VS Code」）。</td></tr>
+        <tr><td>カテゴリ</td><td>「開発」「ブラウザ」「資料作成」「デザイン」「コミュニケーション」など。新しいカテゴリも作れます。ダッシュボードでカテゴリ別に集計できます。</td></tr>
+        <tr><td>作業に数える</td><td>オフにすると、そのアプリを使っている時間は作業時間に入りません。</td></tr>
+        <tr><td>Discord の表示</td><td>そのアプリを使っているときに Discord に出す文（例:「プログラミング中」）。空なら「作業中」。</td></tr>
+      </table></div>
+      <h3>作業時間に含めるアプリの決め方（2つの方式）</h3>
+      <ul>
+        <li><b>「数えない」にしたアプリ以外すべて</b>（初期）… ほとんどのアプリを数え、ゲームなどを外していく方式。</li>
+        <li><b>選んだアプリだけ</b> … 「作業に数える」をオンにしたアプリだけを数える方式。仕事用のアプリが決まっている人向け。何も選んでいないと、何も数えないので注意してください。</li>
+      </ul>
+      <p>どちらの方式でも、変えた設定は過去の集計にも反映されます（記録そのものは変わりません）。</p>
+    </section>
+
+    <section id="goal">
+      <h2><span class="no">6</span>目標と通知</h2>
+      <ul>
+        <li><b>1日の目標</b>（<span class="ui">設定 → 一般</span>、初期 3 時間）を達成すると、通知でお知らせします（1日1回）。</li>
+        <li><b>連続達成</b>：目標を達成した日が続くと 🔥 の日数が増えます。</li>
+        <li><b>先週のまとめ</b>：週が変わって最初に起動したとき、先週の作業時間と、前の週との比較を通知します。</li>
+        <li>通知は Windows の通知に出ます。出ない場合は、Windows の <span class="ui">設定 → システム → 通知</span> で WorkMonitor（または Python）の通知がオンか確かめてください。</li>
+      </ul>
+    </section>
+
+    <!-- ===================== 見る・表示する ===================== -->
+    <section id="dashboard">
+      <h2><span class="no">7</span>ダッシュボード</h2>
+      <p>メイン画面の <span class="ui">📊 ダッシュボード</span> を押すと、この PC の記録をグラフにしたページがブラウザで開きます（インターネットにはつながず、PC の中だけで作ります）。</p>
+      <ul>
+        <li><b>日・週・月</b>を切り替えられます。週と月は、前の週・前の月との比較も出ます。</li>
+        <li><b>アプリ別・カテゴリ別</b>を切り替えられます。</li>
+        <li>日の表示では、<b>時間帯別</b>のグラフ（何時ごろに作業したか）も出ます。</li>
+        <li>直近の日別の作業時間と、アプリ別・カテゴリ別の内訳の表が出ます。</li>
+      </ul>
+      <div class="box tip"><p>別の PC やスマホから見たいときは、<a href="#web">ウェブで記録を見る</a> を使ってください。</p></div>
+    </section>
+
+    <section id="overlay">
+      <h2><span class="no">8</span>オーバーレイ</h2>
+      <p>画面の端に、小さなタイマーを常に表示します。ゲームや全画面の作業中でも作業時間が見えます。メイン画面の <span class="ui">🪟 オーバーレイ</span> で表示／非表示を切り替えます。</p>
+      <ul>
+        <li><b>ドラッグ</b>で移動、<b>右クリック</b>でメニュー（メイン画面を開く・設定・閉じる）、<b>ダブルクリック</b>でメイン画面を開きます。</li>
+        <li><span class="ui">設定 → オーバーレイ</span> で、透明度・大きさ（小・中・大）・アプリ名の表示・クリックの透過を変えられます。</li>
+        <li><b>クリックの透過</b>をオンにすると、オーバーレイの後ろのウィンドウを操作できます（その間はドラッグできません）。</li>
+        <li>見失ったときは <span class="ui">位置を初期化（右上へ）</span> を押してください。</li>
+      </ul>
+    </section>
+
+    <section id="discord">
+      <h2><span class="no">9</span>Discord に表示</h2>
+      <p>Discord のプロフィールに「作業中 1:23:45 経過」のように表示できます（Rich Presence）。</p>
+      <ol class="steps">
+        <li><a href="https://discord.com/developers/applications" target="_blank" rel="noopener">Discord Developer Portal</a> を開き、<span class="ui">New Application</span> でアプリを作ります。付けた名前が「〇〇をプレイ中」として表示されます（例: 「作業」）。</li>
+        <li>表示された <b>Application ID</b>（数字）をコピーします。</li>
+        <li>WorkMonitor の <span class="ui">設定 → Discord</span> に貼り付けて、<span class="ui">保存</span> を押します。</li>
+        <li><b>PC 版の Discord アプリ</b>を起動しておきます（ブラウザ版の Discord では表示されません）。</li>
+      </ol>
+      <ul>
+        <li><span class="ui">Discord の表示にアプリ名を入れる</span> をオンにすると「作業中: VS Code」のようになります。フレンドに見えるので注意してください。</li>
+        <li>アプリごとの文言は <a href="#apps">アプリ別の設定</a> で変えられます。</li>
+        <li>いまの状態は、メイン画面の下や <span class="ui">設定 → Discord</span> に出ます。</li>
+      </ul>
+    </section>
+
+    <!-- ===================== アカウント ===================== -->
+    <section id="account">
+      <h2><span class="no">10</span>アカウントと同期</h2>
+      <p>アカウントを作ると、記録がクラウドに同期され、スマホや別の PC のブラウザからも見られます。アカウントがなくても、アプリの機能はすべて使えます。</p>
+      <ol class="steps">
+        <li><span class="ui">設定 → アカウント</span> でメールアドレスとパスワード（8文字以上）を入れ、<a href="terms.html">利用規約</a>と<a href="privacy.html">プライバシーポリシー</a>に同意して <span class="ui">新しく登録</span> を押します。</li>
+        <li>届いた確認メールのリンクを開きます。</li>
+        <li>アプリに戻って <span class="ui">ログイン</span> します。これまでの記録（最大120日分）が送られ、その後は5分ごとに同期されます。</li>
+      </ol>
+      <h3>送るもの・送らないもの</h3>
+      <ul>
+        <li>送るのは <b>日ごと・アプリごとの合計時間、カテゴリ、目標</b> だけです。<b>ウィンドウのタイトル（開いているファイル名やページ名）は送りません。</b></li>
+        <li>送る前に、PC の中で <b>AES-256-GCM で暗号化</b>します（エンドツーエンド暗号化）。鍵はパスワードから作るので、サーバーの管理者も中身を読めません。</li>
+      </ul>
+      <div class="box warn"><p>暗号の鍵はパスワードから作るため、<b>パスワードを忘れて再設定すると、クラウドの記録は読めなくなり、作り直しになります</b>。アプリで再びログインすると、PC に残っている記録（最大120日分）を送り直します。</p></div>
+      <p>同期を止めたいときは、<span class="ui">記録をクラウドに同期する</span> をオフにします。<span class="ui">今すぐ同期</span> でいつでも送れます。</p>
+    </section>
+
+    <section id="web">
+      <h2><span class="no">11</span>ウェブで記録を見る</h2>
+      <ol class="steps">
+        <li>公式サイトの <a href="app.html">ログイン</a> を開きます（アプリの <span class="ui">🌐 ウェブで見る</span> からも開けます）。</li>
+        <li>アプリと同じメールアドレスとパスワードでログインします。パスワードはこのブラウザの中で鍵を作るのに使い、サーバーには送りません。</li>
+        <li>日・週・月、アプリ別・カテゴリ別のグラフと表が見られます。</li>
+      </ol>
+      <ul>
+        <li><span class="ui">この端末で暗号鍵を記憶する</span> をオンにすると、次からパスワードを入れずに見られます。共用の PC ではオフにしてください。ログアウトすると鍵は消えます。</li>
+        <li>パスワードを忘れたときは、ログイン画面の <span class="ui">パスワードを忘れた場合</span> から再設定できます（上の注意を読んでください）。</li>
+      </ul>
+    </section>
+
+    <section id="delete">
+      <h2><span class="no">12</span>記録・アカウントの削除</h2>
+      <div class="scroll"><table>
+        <tr><th>やりたいこと</th><th>場所</th><th>消えるもの</th></tr>
+        <tr><td>記録だけ消す（アカウントは残す）</td><td>アプリ: <span class="ui">設定 → 一般 → 記録をすべて削除</span><br>サイト: 記録を見るページの下</td><td>この PC の記録 と／または クラウドの記録（選べます）。設定とアカウントは残ります。</td></tr>
+        <tr><td>アカウントを消す</td><td>アプリ: <span class="ui">設定 → アカウント → アカウントを削除</span><br>サイト: 記録を見るページの下</td><td>アカウント・クラウドの記録・暗号鍵・同意の記録。PC の記録は残ります。</td></tr>
+      </table></div>
+      <p>どちらも元に戻せないため、間違えて消さないよう、次の手順を踏んだときだけ実行されます。</p>
+      <ol class="steps">
+        <li>決まった文を、自分で入力します（貼り付けはできません）。記録は <code>delete workmonitor alldata</code>、アカウントは <code>delete workmonitor account</code>。</li>
+        <li><span class="ui">内容を理解し、削除に同意します</span> にチェックを入れます。</li>
+        <li>5 秒待つと、ボタンが押せるようになります。</li>
+        <li>ボタンを <b>3 回</b>押すと削除されます。</li>
+      </ol>
+      <p>クラウドの記録だけを消した場合、そのままでは次の同期で PC の記録がまた送られるため、クラウド同期は自動でオフになります。</p>
+    </section>
+
+    <!-- ===================== MOD ===================== -->
+    <section id="mods">
+      <h2><span class="no">13</span>MOD を入れる</h2>
+      <p>MOD は、WorkMonitor に機能を足す追加プログラムです（ポモドーロタイマー、目標カレンダー、日報の自動作成など）。公式サイトの <a href="mods.html">MOD</a> に、みんなが作った MOD が公開されています。</p>
+      <h3>いちばんかんたんな方法：MOD ストア <span class="ver">1.8.0〜</span></h3>
+      <ol class="steps">
+        <li>メイン画面の <span class="ui">⚙ 設定</span> → <span class="ui">Mods</span> → <span class="ui">🧩 MOD ストア</span> を開きます。</li>
+        <li>検索や、左の「まだ入れていない／入れている／更新がある」で MOD を探します。カードを押すと、右に説明と「この MOD が行うこと」が出ます。</li>
+        <li><span class="ui">入れる</span> を押すだけで入って、すぐに動き始めます。初めて使うときだけ、自己責任についての確認が出ます。</li>
+      </ol>
+      <h3>サイトからダウンロードして入れる方法</h3>
+      <ol class="steps">
+        <li><a href="mods.html">MOD のページ</a> で MOD を探し、<span class="ui">ダウンロード</span> します（<code>.py</code> か <code>.zip</code>）。</li>
+        <li>ダウンロードしたファイルを、WorkMonitor の<b>メイン画面</b>か <span class="ui">設定 → Mods</span> に<b>ドラッグ＆ドロップ</b>します（<span class="ui">ファイルから追加…</span> でも選べます）。</li>
+        <li>確認が出たら <span class="ui">はい</span> を押します。</li>
+      </ol>
+      <div class="box warn">
+        <p>MOD は利用者が作ったプログラムで、アプリと同じ権限で動きます。公開前に自動審査をしていますが、<b>安全を保証するものではありません</b>。「中身を見る」で内容を確かめ、信頼できるものだけ入れてください。MOD の利用は自己責任です（<a href="terms.html#mods">利用規約 第8条</a>）。</p>
+      </div>
+      <p>「WorkMonitor 1.7.0 以降が必要」などと書かれた MOD は、そのバージョン以降で使えます。古いと MOD ストアのボタンが押せません。</p>
+    </section>
+
+    <section id="mods-manage">
+      <h2><span class="no">14</span>MOD の管理と自動更新</h2>
+      <p><span class="ui">設定 → Mods</span> で、入れた MOD を管理できます。オン・オフはすぐに反映されます。</p>
+      <ul>
+        <li><b>オン／オフ</b>：一覧で選んで <span class="ui">オンにする</span>／<span class="ui">オフにする</span>。</li>
+        <li><b>再読み込み</b>：MOD のファイルを直したときに、アプリを再起動せずに読み込み直します。</li>
+        <li><b>削除</b>：MOD のファイルを消します（MOD が保存したデータは残ります）。</li>
+        <li><b>ログ</b>：選んだ MOD のメッセージやエラーが下の欄に出ます。MOD の中でエラーが続くと、その MOD は自動で止まります。</li>
+        <li><b>MOD のボタン</b>：MOD によっては、選ぶとその MOD の操作ボタン（「タイマーをリセット」など）が出ます。</li>
+        <li><span class="ui">MOD を読み込む</span> をオフにすると、すべての MOD を止められます。</li>
+      </ul>
+      <h3>更新と自動更新 <span class="ver">1.8.0〜</span></h3>
+      <ul>
+        <li>MOD ストアの <span class="ui">更新がある</span> に、新しいバージョンが出た MOD が出ます。<span class="ui">更新</span> か <span class="ui">すべて更新</span> を押します。</li>
+        <li><span class="ui">ストアから入れた MOD を自動で更新する</span> をオンにすると、起動したときと1日1回、自動で新しいバージョンを入れます（<b>初期はオフ</b>）。対象は MOD ストアから入れた MOD だけです。</li>
+        <li>更新しても、MOD のオン・オフと MOD が保存したデータはそのまま残ります。</li>
+        <li>ダウンロードしたファイルは、公開一覧の SHA-256 と同じか確かめてから入れます。違えば入れません。</li>
+      </ul>
+      <div class="box tip"><p>MOD のせいでアプリが起動しなくなったら、<code>WorkMonitor.exe --no-mods</code> で起動すると、MOD を読み込まずに起動できます（ショートカットのプロパティの「リンク先」の最後に <code>--no-mods</code> を足すなど）。そのあと <span class="ui">設定 → Mods</span> で原因の MOD をオフにするか削除してください。</p></div>
+    </section>
+
+    <section id="mods-make">
+      <h2><span class="no">15</span>MOD を作る・投稿する</h2>
+      <p>MOD はふつうの Python のプログラムです。<code>setup(api)</code> という関数を書くと、アプリが起動したとき（MOD をオンにしたとき）に呼ばれます。</p>
+      <pre class="box" style="overflow-x:auto;font-size:13px;line-height:1.6"><code style="border:0;background:none;padding:0">MOD_INFO = {
+    "name": "はじめての MOD",
+    "version": "1.0.0",
+    "author": "あなたの名前",
+    "description": "作業を始めたら通知します。",
+}
+
+def setup(api):
+    @api.on("state_change")
+    def changed(old, new, status):
+        if new == "working":
+            api.notify(f"{status['app_name']} で作業を始めました")</code></pre>
+      <ul>
+        <li>このファイルを <code>my_first_mod.py</code> として保存し、メイン画面にドラッグ＆ドロップすると動きます。</li>
+        <li>イベント（作業中になった、目標を達成した など）、メイン画面への表示、オーバーレイや Discord の文字の変更、通知、データの保存などができます。</li>
+        <li>詳しい作り方は、<span class="ui">設定 → Mods → 作り方</span> で開く <code>modreadme.txt</code> か、<a href="https://github.com/kaikomziu/WorkMonitor/blob/main/mods/modreadme.txt">GitHub の modreadme.txt</a> を見てください。作例（ポモドーロタイマーなど）もあります。</li>
+      </ul>
+      <h3>公式サイトに投稿する</h3>
+      <ol class="steps">
+        <li><a href="mods.html#submit">MOD のページ → 投稿・更新</a> を開き、WorkMonitor のアカウントでログインします。</li>
+        <li>ファイル（<code>.py</code> か <code>.zip</code>）を選び、<a href="terms.html#mods">利用規約 第8条</a>に同意して <span class="ui">投稿する</span> を押します。ファイル名がそのまま MOD の名前になります（英小文字・数字・<code>_</code>・<code>-</code> で 2〜40 文字）。</li>
+        <li>10〜20 分ほどで自動審査が終わります。合格すると公開され、MOD ストアにも出ます。不合格のときは、理由が「あなたの MOD」に出ます。</li>
+      </ol>
+      <p><b>更新</b>するときは、<code>MOD_INFO</code> の version を上げて同じファイル名で投稿します（<span class="ui">あなたの MOD → 新しいバージョンを投稿</span>）。更新できるのは、最初に公開した人だけです。</p>
+      <p>自動審査では、投稿されたファイルを実行せずに中身を調べます。ほかのプログラムの起動、組み立てたコードの実行、ファイルの削除、パスワードやトークンの読み取りなどは不合格になります。通信やファイルの書き込みなどは、一覧に「この MOD が行うこと」として表示されます。</p>
+    </section>
+
+    <!-- ===================== そのほか ===================== -->
+    <section id="settings">
+      <h2><span class="no">16</span>設定の一覧</h2>
+      <p>メイン画面の <span class="ui">⚙ 設定</span> で開きます。<span class="ui">保存</span> を押すと反映されます（Mods のオン・オフなど、一部はその場で反映）。</p>
+      <div class="scroll"><table>
+        <tr><th>タブ</th><th>設定できること</th></tr>
+        <tr><td>一般</td><td>1日の目標／無操作で休憩中にするまでの秒数（初期 60 秒）／Windows の起動時に自動で起動／メイン画面を常に一番上に表示／テーマ（Windows に合わせる・ライト・ダーク）／新しいバージョンの通知／記録フォルダを開く／今すぐアップデートを確認／記録をすべて削除</td></tr>
+        <tr><td>アプリ別</td><td>数える方式（数えないアプリ以外すべて／選んだアプリだけ）／アプリごとの表示名・カテゴリ・作業に数えるか・Discord の表示／アプリの追加</td></tr>
+        <tr><td>オーバーレイ</td><td>表示する／透明度／大きさ／アプリ名とカテゴリの表示／クリックの透過／位置の初期化</td></tr>
+        <tr><td>Discord</td><td>表示する／Application ID／アプリ名を入れる／いまの状態</td></tr>
+        <tr><td>アカウント</td><td>登録・ログイン・ログアウト／同期のオン・オフ／今すぐ同期／ウェブサイトで見る／記録の削除／アカウントの削除</td></tr>
+        <tr><td>Mods</td><td>MOD を読み込む／ストアから入れた MOD の自動更新／MOD ストア／MOD のオン・オフ・再読み込み・削除・ログ／ファイルから追加／MOD フォルダを開く／作り方</td></tr>
+      </table></div>
+    </section>
+
+    <section id="tray">
+      <h2><span class="no">17</span>タスクトレイ・自動起動</h2>
+      <ul>
+        <li>メイン画面の × を押しても終了せず、タスクトレイ（画面右下）で記録を続けます。</li>
+        <li>トレイのアイコンを<b>右クリック</b>すると、開く・ダッシュボード・ウェブで見る・オーバーレイ・設定・Mods・アップデートを確認・<b>終了</b> が選べます。ダブルクリック（クリック）でメイン画面が開きます。</li>
+        <li>アイコンが見当たらないときは、トレイの <span class="ui">^</span>（隠れているアイコン）の中を見てください。</li>
+        <li><span class="ui">設定 → 一般 → Windows の起動時に自動で起動する</span> をオンにすると、ログインしたときに最小化した状態で起動します。</li>
+        <li>WorkMonitor は二重には起動しません。「すでに起動しています」と出たら、トレイのアイコンから開いてください。</li>
+      </ul>
+    </section>
+
+    <section id="update">
+      <h2><span class="no">18</span>アップデート</h2>
+      <ul>
+        <li>新しいバージョンが出ると、メイン画面の上にお知らせが出て、通知も届きます（1日1回確認。<span class="ui">設定 → 一般</span> でオフにできます）。</li>
+        <li><b>インストーラー版</b>：新しい <code>WorkMonitor-Setup.exe</code> をダウンロードして実行すると、上書きで更新されます。</li>
+        <li><b>ZIP 版</b>：アプリを終了してから、<code>WorkMonitor.exe</code> を新しいものに入れ替えます。</li>
+        <li>記録・設定・MOD はそのまま引き継がれます。</li>
+      </ul>
+    </section>
+
+    <section id="data">
+      <h2><span class="no">19</span>データの場所・バックアップ</h2>
+      <p>記録と設定は <code>%APPDATA%\WorkMonitor</code> に保存されます（<span class="ui">設定 → 一般 → 記録フォルダを開く</span> で開けます）。</p>
+      <div class="scroll"><table>
+        <tr><th>場所</th><th>中身</th></tr>
+        <tr><td><code>logs\日付.csv</code></td><td>作業の記録（開始・終了時刻、秒数、アプリ、ウィンドウのタイトル）。Excel で開けます。</td></tr>
+        <tr><td><code>config.json</code></td><td>設定</td></tr>
+        <tr><td><code>apps.json</code></td><td>これまでに使ったアプリの一覧</td></tr>
+        <tr><td><code>session.bin</code></td><td>ログイン情報（この PC のユーザーだけが読めるよう暗号化）</td></tr>
+        <tr><td><code>mods\</code> ／ <code>mod_data\</code></td><td>入れた MOD と、MOD が保存したデータ</td></tr>
+      </table></div>
+      <ul>
+        <li><b>バックアップ</b>：このフォルダごとコピーしておけば、別の PC に移すこともできます（<code>session.bin</code> は移せないので、移した先でログインし直してください）。</li>
+        <li><b>アンインストール</b>：インストーラー版は Windows の <span class="ui">設定 → アプリ</span> から。ZIP 版はフォルダを消すだけです。どちらも記録は残るので、要らなければ上のフォルダも消してください。</li>
+      </ul>
+    </section>
+
+    <section id="trouble">
+      <h2><span class="no">20</span>困ったとき</h2>
+      <details class="faq"><summary>作業時間が増えない</summary>
+        <ul>
+          <li>状態が「数えないアプリを使用中」（オレンジ）なら、そのアプリが数えない設定です。<span class="ui">設定 → アプリ別</span> で「作業に数える」をオンにしてください。</li>
+          <li>「選んだアプリだけ」方式で、数えるアプリを1つも選んでいないと、何も数えません。</li>
+          <li>状態が「休憩中」（灰色）のままなら、操作していない扱いです。休憩中にするまでの秒数を長くしてみてください。</li>
+          <li>管理者として起動したアプリ（一部のゲームなど）が前面にあると、アプリの名前を読み取れず「(不明)」になることがあります。WorkMonitor も管理者として起動すると読み取れます。</li>
+        </ul></details>
+      <details class="faq"><summary>Discord に表示されない</summary>
+        <ul>
+          <li>PC 版の Discord アプリが起動しているか確かめてください（ブラウザ版では出ません）。</li>
+          <li><span class="ui">設定 → Discord</span> の Application ID が正しいか、「Discord に作業時間を表示する」がオンか確かめてください。</li>
+          <li>Discord の <span class="ui">ユーザー設定 → アクティビティのプライバシー</span> で「現在のアクティビティをステータスに表示する」がオンか確かめてください。</li>
+        </ul></details>
+      <details class="faq"><summary>同期できない・「利用規約への同意が必要」と出る</summary>
+        <ul>
+          <li>利用規約が新しくなったときは、もう一度同意が必要です。<span class="ui">設定 → アカウント</span> で「同意する」にチェックを入れてログインし直してください。</li>
+          <li>サイトで「新しい利用規約への同意を確認できませんでした」と出るときは、一度ログアウトしてログインし直してください。</li>
+          <li>インターネットにつながっているか、メールアドレスの確認が済んでいるか確かめてください。</li>
+        </ul></details>
+      <details class="faq"><summary>ウェブで記録が出ない・暗号を解除できない</summary>
+        <ul>
+          <li>アプリでログインして同期がオンになっているか確かめてください（<span class="ui">今すぐ同期</span> を押すとすぐ送れます）。</li>
+          <li>パスワードを再設定した場合、古い記録は読めません。アプリでログインし直すと、PC の記録から送り直されます。</li>
+        </ul></details>
+      <details class="faq"><summary>MOD を入れたらおかしくなった・起動しない</summary>
+        <ul>
+          <li><span class="ui">設定 → Mods</span> で、その MOD を選んでログを確かめ、オフにするか削除してください。</li>
+          <li>起動しない場合は <code>WorkMonitor.exe --no-mods</code> で起動するか、<code>%APPDATA%\WorkMonitor\mods</code> からその MOD のファイルを消してください。</li>
+          <li>問題のある MOD は、<a href="https://github.com/kaikomziu/WorkMonitor/issues">GitHub の Issues</a> でお知らせください。</li>
+        </ul></details>
+      <details class="faq"><summary>「Windows によって PC が保護されました」と出る</summary>
+        <p>署名のない個人開発のアプリのため表示されます。<span class="ui">詳細情報</span> → <span class="ui">実行</span> で起動できます。ファイルが本物か心配なときは、<a href="#install">インストール</a> の SHA-256 の確かめ方を見てください。</p></details>
+      <details class="faq"><summary>通知が出ない</summary>
+        <p>Windows の <span class="ui">設定 → システム → 通知</span> で通知がオンか、集中モード（応答不可）になっていないか確かめてください。</p></details>
+      <details class="faq"><summary>画面がぼやける・文字が大きすぎる／小さすぎる</summary>
+        <p>Windows の表示スケール（<span class="ui">設定 → ディスプレイ → 拡大縮小</span>）に合わせて表示します。スケールを変えたら、アプリを一度終了して起動し直してください。</p></details>
+    </section>
+
+    <section id="contact">
+      <h2><span class="no">21</span>お問い合わせ</h2>
+      <p>不具合の報告・要望・質問は <a href="https://github.com/kaikomziu/WorkMonitor/issues">GitHub の Issues</a> で受け付けています（GitHub アカウントが必要です）。Issues は公開されるので、メールアドレスなどの個人情報は書かないでください。</p>
+      <p>そのほか：<a href="terms.html">利用規約</a> ・ <a href="privacy.html">プライバシーポリシー</a> ・ <a href="https://github.com/kaikomziu/WorkMonitor/releases">リリース一覧（変更履歴）</a></p>
+    </section>
+  </article>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>WorkMonitor ・ 運営：かるわか</span>
+    <span><a href="guide.html">使い方</a> ・ <a href="mods.html">MOD</a> ・ <a href="terms.html">利用規約</a> ・ <a href="privacy.html">プライバシーポリシー</a> ・ <a href="https://github.com/kaikomziu/WorkMonitor">GitHub</a></span>
+  </div>
+</footer>
+
+<script src="guide.js"></script>
+</body>
+</html>
