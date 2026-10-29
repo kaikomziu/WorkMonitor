@@ -1,6 +1,31 @@
 {
- "updated": "2026-10-29T13:09:36Z",
+ "updated": "2026-10-29T13:17:45Z",
  "mods": [
+  {
+   "id": "music_indicator",
+   "versions": [
+    {
+     "version": "1.2.0",
+     "file": "mods/files/music_indicator/1.2.0/music_indicator.py",
+     "size": 5551,
+     "sha256": "d80b7a96bd52f6da15bd7fa7e6559ec769ae54a33647413a8c3c05269088b4d8",
+     "published": "2026-10-29T13:17:45Z",
+     "permissions": [
+      "dialog",
+      "overlay",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "d80b7a96bd52f6da15bd7fa7e6559ec769ae54a33647413a8c3c05269088b4d8",
+     "changes": "曲名を読むのをやめて、音楽アプリを開いたことで音楽モードになる形に作り直し。音楽あり／なしの作業時間の比較・手動の切り替えボタンを追加"
+    }
+   ],
+   "name": "音楽モード",
+   "author": "かるわか",
+   "description": "Spotify・iTunes・YouTube Music などの音楽アプリを開くと音楽モードになり、オーバーレイに🎵を出します。音楽あり／なしの作業時間を比べられます。",
+   "version": "1.2.0",
+   "updated": "2026-10-29T13:17:45Z"
+  },
   {
    "id": "achievements",
    "versions": [
