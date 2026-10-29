@@ -1,6 +1,31 @@
 {
- "updated": "2026-10-28T15:26:18Z",
+ "updated": "2026-10-29T00:06:19Z",
  "mods": [
+  {
+   "id": "plants",
+   "versions": [
+    {
+     "version": "1.0.0",
+     "file": "mods/files/plants/1.0.0/plants.py",
+     "size": 31924,
+     "sha256": "3d12b9594d55197022a16d0d6eb9e245482d241351d2d92f2cf89c07ec933e48",
+     "published": "2026-10-29T00:06:19Z",
+     "permissions": [
+      "dialog",
+      "notify",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "3d12b9594d55197022a16d0d6eb9e245482d241351d2d92f2cf89c07ec933e48",
+     "changes": "Plants!MOD"
+    }
+   ],
+   "name": "Plants!",
+   "author": "かるわか",
+   "description": "作業時間に応じて鉢植えの植物が育ちます。育ちきったら収穫して記録に残し、次の植物を選んで育てましょう。",
+   "version": "1.0.0",
+   "updated": "2026-10-29T00:06:19Z"
+  },
   {
    "id": "pomodoro",
    "versions": [
