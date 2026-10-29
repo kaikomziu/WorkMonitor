@@ -502,8 +502,9 @@ class Earo:
         if os.path.isfile(folder + ".py"):
             os.remove(folder + ".py")
 
-    def install(self, plan):
-        """MOD を mods フォルダにコピーしてオンにする。読み込みに失敗しても入れたままにする（一覧でエラーを見られる）"""
+    def install(self, plan, active=True, note="追加しました"):
+        """MOD を mods フォルダにコピーしてオンにする（更新のときは active に前のオン・オフを渡す）。
+        読み込みに失敗しても入れたままにする（一覧でエラーを見られる）"""
         os.makedirs(MODS_DIR, exist_ok=True)
         dest_dir = os.path.join(MODS_DIR, plan.mod_id)
         dest = dest_dir if plan.kind == "dir" or (plan.kind == "zip" and not plan.member.endswith(".py")) \
@@ -533,14 +534,15 @@ class Earo:
         mod = self.mods.get(plan.mod_id)
         if mod is None:
             raise InstallError("コピーしたあと MOD が見つかりませんでした")
-        mod.log("追加しました")
-        self.set_active(mod, True)
+        mod.log(note)
+        self.set_active(mod, active)
         return mod
 
     def remove(self, mod):
         self.unload(mod)
         self._remove_files(mod.id)
         self.settings.setdefault("active", {}).pop(mod.id, None)
+        self.settings.setdefault("store", {}).pop(mod.id, None)   # ストアから入れた記録も消す
         self._save()
         self.mods.pop(mod.id, None)
         self._changed()

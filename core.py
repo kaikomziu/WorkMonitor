@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from discord_rpc import DiscordPresence
 
 APP_NAME = "WorkMonitor"
-APP_VERSION = "1.7.0"
+APP_VERSION = "1.8.0"
 GITHUB_REPO = "kaikomziu/WorkMonitor"  # アップデート確認に使う
 WEBSITE_URL = "https://kaikomziu.github.io/WorkMonitor/"
 TERMS_URL = WEBSITE_URL + "terms.html"
@@ -67,7 +67,9 @@ DEFAULT_CONFIG = {
     # キーは exe 名（小文字）。値は name / category / count / discord
     "app_rules": {},
     # MOD（Earo）。enabled: MOD を読み込むか、active: MOD ごとのオン・オフ
-    "mods": {"enabled": True, "active": {}},
+    # store: MOD ストアから入れた MOD（ID → {"version", "sha256"}）、auto_update: それらを自動で更新するか
+    # store_agreed: ストアの注意（自己責任）に同意したか
+    "mods": {"enabled": True, "active": {}, "store": {}, "auto_update": False, "store_agreed": False},
 }
 
 # よく使うアプリの表示名とカテゴリの初期値

@@ -28,6 +28,7 @@ import cloud
 import core
 import dnd
 import earo
+import modstore
 import updater
 from dashboard import build_dashboard
 from overlay import Overlay
@@ -830,7 +831,7 @@ class SettingsDialog(tk.Toplevel):
         loader = self.app.earo
         f = self._page("Mods", f"{earo.LOADER_NAME}（MOD ローダー）で、Python で書いた MOD を読み込んで機能を足せます。"
                                ".py ファイル・フォルダ・.zip をこの画面かメイン画面にドラッグ＆ドロップすると追加できます。"
-                               "公式サイトの「MOD」で、みんなが作った MOD を探したり投稿したりできます。")
+                               "「MOD ストア」から、公式サイトで公開中の MOD をボタン1つで入れたり更新したりできます。")
         ttk.Label(f, text=jp("⚠ MOD はこのアプリと同じ権限で動くプログラムです（ファイルの読み書きや通信もできます）。"
                              "信頼できる人が作ったものだけ入れてください。"),
                   foreground=EXCLUDED_COLOR, wraplength=self.app.wrap, justify="left").pack(anchor="w", pady=(0, 6))
@@ -841,6 +842,9 @@ class SettingsDialog(tk.Toplevel):
                         command=lambda: loader.set_enabled(self.v_mods_on.get()),
                         state="disabled" if loader.safe_mode else "normal").pack(side="left")
         ttk.Label(top, text=f"{earo.LOADER_NAME} {earo.LOADER_VERSION}", foreground=self.app.sub_color).pack(side="right")
+        self.v_mod_auto = tk.BooleanVar(value=loader.settings.get("auto_update", False))
+        ttk.Checkbutton(top, text="ストアから入れた MOD を自動で更新する", variable=self.v_mod_auto,
+                        style="Switch.TCheckbutton", command=self._set_mod_auto).pack(side="left", padx=(16, 0))
         if loader.safe_mode:
             ttk.Label(f, text="セーフモード（--no-mods）で起動しているため、MOD を読み込んでいません。",
                       foreground="#d9534f").pack(anchor="w", pady=(4, 0))
@@ -881,8 +885,7 @@ class SettingsDialog(tk.Toplevel):
 
         b = ttk.Frame(f)
         b.pack(fill="x", pady=(10, 0))
-        ttk.Button(b, text="🌐 MOD を探す", style="Accent.TButton",
-                   command=lambda: webbrowser.open(core.MODS_URL)).pack(side="left")
+        ttk.Button(b, text="🧩 MOD ストア", style="Accent.TButton", command=self._open_store).pack(side="left")
         ttk.Button(b, text="ファイルから追加…", command=self._pick_mods).pack(side="left", padx=8)
         ttk.Button(b, text="MOD フォルダを開く", command=self._open_mods_dir).pack(side="left")
         ttk.Button(b, text="作り方", command=self._open_mod_readme).pack(side="left", padx=8)
@@ -891,6 +894,18 @@ class SettingsDialog(tk.Toplevel):
         self._mod_log_key = None
         loader.on_change = self._refresh_mods
         self._refresh_mods()
+
+    def _open_store(self):
+        store = modstore.StoreWindow(self.app, self, decorate=lambda w: dark_title_bar(w, self.app.dark))
+        # ストアで自動更新を切り替えたら、こちらのスイッチにも反映する
+        store.bind("<Destroy>", lambda e: e.widget is store and self.winfo_exists()
+                   and self.v_mod_auto.set(self.app.earo.settings.get("auto_update", False)))
+
+    def _set_mod_auto(self):
+        self.app.earo.settings["auto_update"] = self.v_mod_auto.get()
+        core.save_config(self.app.config)
+        if self.v_mod_auto.get():
+            self.app.update_mods()   # オンにしたらすぐ確かめる
 
     def _selected_mod(self):
         sel = self.mod_tree.selection()
@@ -1143,6 +1158,7 @@ class App:
         self.root.after(5000, self._check_weekly)
         self.root.after(8000, self._scheduled_update_check)
         self.root.after(10000, lambda: self._scheduled_sync(days=7))  # 起動時はオフラインだった分も送る
+        self.root.after(30000, self._scheduled_mod_update)
 
     # ---- テーマ ----
     def _theme_is_dark(self):
@@ -1470,6 +1486,15 @@ class App:
             else:
                 messagebox.showinfo("アップデート", f"最新のバージョン（{core.APP_VERSION}）です。\n"
                                     "（インターネットにつながっていない場合も、こう表示されます）", parent=parent)
+
+    # ---- MOD の自動更新（ストアから入れた MOD。初期はオフ） ----
+    def _scheduled_mod_update(self):
+        self.update_mods()
+        self.root.after(modstore.AUTO_UPDATE_INTERVAL_MS, self._scheduled_mod_update)
+
+    def update_mods(self):
+        if self.earo.enabled and self.earo.settings.get("auto_update") and self.earo.settings.get("store"):
+            modstore.auto_update(self)
 
     # ---- アカウント・同期 ----
     def run_cloud(self, fn, done=None):

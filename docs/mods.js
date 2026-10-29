@@ -1,8 +1,9 @@
-// WorkMonitor の MOD ページ: 公開中の MOD の一覧（docs/mods/index.json）と投稿
+// WorkMonitor の MOD ページ: 公開中の MOD の一覧（docs/mods/index.json）・投稿・自分の MOD
 const sb = supabase.createClient(WM.supabaseUrl, WM.supabaseKey);
 const $ = id => document.getElementById(id);
 const MOD_FILE = /^[a-z0-9][a-z0-9_-]{1,39}\.(py|zip)$/;
 const MAX_SIZE = 512 * 1024;
+const PAGE = 24;   // 一度に出す MOD の数
 // tools/mod_review.py の PERMISSIONS と同じ
 const PERMISSIONS = {
   open: 'フォルダやファイル（見るだけのもの）を開きます', notify_filter: 'ほかの MOD の通知を止めたり変えたりします',
@@ -11,6 +12,11 @@ const PERMISSIONS = {
   panel: 'メイン画面に表示を追加します', overlay: 'オーバーレイの表示を変えます', discord: 'Discord の表示を変えます',
   notify: '通知を出します', sound: '音を鳴らします', dialog: 'ウィンドウを開きます',
 };
+// 「できること」で絞り込むボタン（PERMISSIONS のキー → 短い名前）
+const FEATURES = [
+  ['panel', 'メイン画面に表示'], ['overlay', 'オーバーレイ'], ['notify', '通知'], ['discord', 'Discord'],
+  ['sound', '音'], ['dialog', 'ウィンドウ'], ['network', '通信する'], ['open', 'ファイルを開く'], ['notify_filter', '通知の調整'],
+];
 // MOD_INFO の api → 必要な WorkMonitor のバージョン
 const API_APP = { 1: '1.6.0', 2: '1.7.0' };
 const STATUS = { pending: ['審査待ち', 'wait'], reviewing: ['審査中', 'wait'], approved: ['✓ 公開', 'ok'], rejected: ['✗ 不合格', 'ng'] };
@@ -51,56 +57,184 @@ const el = (tag, attrs = {}, ...children) => {
   return e;
 };
 
-// ================= 一覧 =================
+// ================= タブ =================
+const TABS = ['find', 'submit', 'mine', 'howto'];
+function showTab(tab) {
+  if (!TABS.includes(tab)) tab = 'find';
+  for (const t of TABS) $(`tab-${t}`).classList.toggle('hidden', t !== tab);
+  document.querySelectorAll('.tabs-v button').forEach(b => {
+    b.classList.toggle('on', b.dataset.tab === tab);
+    b.setAttribute('aria-selected', b.dataset.tab === tab);
+  });
+  if (location.hash.slice(1) !== tab) history.replaceState(null, '', location.pathname + location.search + '#' + tab);
+}
+document.querySelectorAll('.tabs-v button').forEach(b => b.onclick = () => { showTab(b.dataset.tab); scrollTo({ top: 0 }); });
+window.addEventListener('hashchange', () => showTab(location.hash.slice(1)));
+
+// ================= 探す =================
 let mods = [];
+const view = { q: '', sort: 'new', ver: '', noNet: false, noWrite: false, feats: new Set(), author: '', limit: PAGE };
+
+// 絞り込みの条件を URL に残す（共有・再読み込みで同じ結果）
+function saveView() {
+  const p = new URLSearchParams();
+  if (view.q) p.set('q', view.q);
+  if (view.sort !== 'new') p.set('sort', view.sort);
+  if (view.ver) p.set('ver', view.ver);
+  if (view.noNet) p.set('nonet', '1');
+  if (view.noWrite) p.set('nowrite', '1');
+  if (view.feats.size) p.set('can', [...view.feats].join(','));
+  if (view.author) p.set('author', view.author);
+  const qs = p.toString();
+  history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
+}
+function loadView() {
+  const p = new URLSearchParams(location.search);
+  view.q = p.get('q') || '';
+  view.sort = ['new', 'name', 'small'].includes(p.get('sort')) ? p.get('sort') : 'new';
+  view.ver = p.get('ver') === '1' ? '1' : '';
+  view.noNet = p.get('nonet') === '1';
+  view.noWrite = p.get('nowrite') === '1';
+  view.feats = new Set((p.get('can') || '').split(',').filter(f => FEATURES.some(([k]) => k === f)));
+  view.author = p.get('author') || '';
+  $('search').value = view.q;
+  $('sort').value = view.sort;
+  $('ver').value = view.ver;
+  $('no-net').checked = view.noNet;
+  $('no-write').checked = view.noWrite;
+}
 
 async function loadMods() {
   try {
     const res = await fetch('mods/index.json', { cache: 'no-cache' });
     if (!res.ok) throw new Error(res.status);
     mods = (await res.json()).mods || [];
-    renderOwned();
   } catch (e) {
     $('mods').replaceChildren(el('div', { class: 'card empty', text: 'MOD の一覧を読み込めませんでした。時間をおいて読み込み直してください。' }));
     return;
   }
+  $('badge-find').textContent = mods.length;
+  renderOwned();
   render();
 }
 
+const perms = m => m.versions[0].permissions || [];
+const tokens = () => view.q.toLowerCase().split(/\s+/).filter(Boolean);
+const haystack = m => [m.name, m.author, m.description, m.id, m.versions[0].changes || '',
+  ...perms(m).map(p => PERMISSIONS[p] || p)].join(' ').toLowerCase();
+
+// 「できること」以外の条件で絞る（ボタンの件数にも使う）
+function baseFilter(m) {
+  const t = tokens(), h = haystack(m), p = perms(m);
+  if (!t.every(w => h.includes(w))) return false;
+  if (view.ver && (m.versions[0].api || 1) > Number(view.ver)) return false;
+  if (view.noNet && (p.includes('network') || p.includes('browser'))) return false;
+  if (view.noWrite && p.includes('file_write')) return false;
+  if (view.author && m.author !== view.author) return false;
+  return true;
+}
+
 function render() {
-  const q = $('search').value.trim().toLowerCase();
-  const list = mods.filter(m => !q || [m.name, m.author, m.description, m.id].join(' ').toLowerCase().includes(q));
-  $('count').textContent = `${list.length} 件`;
+  const base = mods.filter(baseFilter);
+  let list = base.filter(m => [...view.feats].every(f => perms(m).includes(f)));
+  if (view.sort === 'name') list.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+  else if (view.sort === 'small') list.sort((a, b) => a.versions[0].size - b.versions[0].size);
+  else list.sort((a, b) => String(b.updated).localeCompare(String(a.updated)) || a.name.localeCompare(b.name, 'ja'));
+
+  // できることボタン（その条件を足したときの件数つき）
+  const chips = [];
+  if (view.author) {
+    const c = el('button', { class: 'chip on', type: 'button', title: '作者の絞り込みを外す' }, `作者: ${view.author} ✕`);
+    c.onclick = () => { view.author = ''; update(); };
+    chips.push(c);
+  }
+  for (const [key, label] of FEATURES) {
+    const n = base.filter(m => perms(m).includes(key) && [...view.feats].every(f => perms(m).includes(f))).length;
+    if (!n && !view.feats.has(key)) continue;
+    const c = el('button', { class: 'chip' + (view.feats.has(key) ? ' on' : ''), type: 'button', 'aria-pressed': view.feats.has(key) },
+      label, el('span', { class: 'n', text: n }));
+    c.onclick = () => { view.feats.has(key) ? view.feats.delete(key) : view.feats.add(key); update(); };
+    chips.push(c);
+  }
+  $('chips').replaceChildren(...chips);
+
+  const filtered = view.q || view.ver || view.noNet || view.noWrite || view.feats.size || view.author;
+  $('reset').classList.toggle('hidden', !filtered);
+  $('count').textContent = filtered ? `${mods.length} 件中 ${list.length} 件` : `${list.length} 件`;
   if (!list.length) {
-    $('mods').replaceChildren(el('div', { class: 'card empty', text: mods.length ? '見つかりませんでした。' : 'まだ MOD がありません。' }));
+    $('mods').replaceChildren(el('div', { class: 'card empty', text: mods.length ? '条件に合う MOD が見つかりませんでした。' : 'まだ MOD がありません。' }));
+    $('more-wrap').classList.add('hidden');
     return;
   }
-  $('mods').replaceChildren(...list.map(card));
+  $('mods').replaceChildren(...list.slice(0, view.limit).map(card));
+  const rest = list.length - view.limit;
+  $('more-wrap').classList.toggle('hidden', rest <= 0);
+  $('more').textContent = `もっと見る（あと ${rest} 件）`;
+}
+
+function update() { view.limit = PAGE; saveView(); render(); }
+
+// 検索した言葉に印を付ける（文字は textContent で入れるので安全）
+function highlight(text) {
+  const t = tokens();
+  if (!t.length) return document.createTextNode(text);
+  const re = new RegExp(`(${t.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
+  const frag = document.createDocumentFragment();
+  String(text).split(re).forEach((part, i) => frag.append(i % 2 ? el('mark', { text: part }) : document.createTextNode(part)));
+  return frag;
 }
 
 function card(m) {
   const v = m.versions[0];
-  const perms = (v.permissions || []).map(p => el('span', { class: 'tag', text: PERMISSIONS[p] || p }));
+  const tags = (v.permissions || []).map(p => el('span', { class: 'tag', text: PERMISSIONS[p] || p }));
   const older = m.versions.slice(1);
+  const author = el('button', { class: 'linkbtn', type: 'button', title: 'この作者の MOD だけを出す', text: m.author });
+  author.onclick = () => { view.author = m.author; update(); scrollTo({ top: 0, behavior: 'smooth' }); };
   return el('div', { class: 'card mod' },
-    el('h3', { text: m.name }),
-    el('div', { class: 'by', text: `作者: ${m.author} ・ v${m.version} ・ ${fmtDate(m.updated)} 公開 ・ ${m.id}` }),
-    el('p', { class: 'desc', text: m.description }),
+    el('h3', {}, highlight(m.name)),
+    el('div', { class: 'by' }, '作者: ', author, ` ・ v${m.version} ・ ${fmtDate(m.updated)}`),
+    el('p', { class: 'desc' }, highlight(m.description)),
     v.changes ? el('p', { class: 'changes', text: `v${v.version} の更新内容: ${v.changes}` }) : null,
     el('div', { class: 'perms' }, el('span', { class: 'tag ok', text: '✓ 自動審査済み' }),
       (v.api || 1) > 1 ? el('span', { class: 'tag wait', text: `WorkMonitor ${API_APP[v.api] || API_APP[2]} 以降が必要` }) : null,
-      ...(perms.length ? perms : [el('span', { class: 'tag', text: '通信・ファイル操作なし' })])),
+      ...(tags.length ? tags : [el('span', { class: 'tag', text: '通信・ファイル操作なし' })])),
     el('div', { class: 'foot' },
       el('a', { class: 'btn primary', href: v.file, download: v.file.split('/').pop(), text: `ダウンロード（${fmtSize(v.size)}）` }),
       el('a', { class: 'small', href: v.file, target: '_blank', rel: 'noopener', text: '中身を見る' })),
-    el('div', { class: 'hash', title: 'ダウンロードしたファイルが改ざんされていないかの確認用', text: `SHA-256: ${v.sha256}` }),
-    older.length ? el('details', { class: 'older' }, el('summary', { text: `以前のバージョン（${older.length}）` }),
+    el('details', { class: 'older' }, el('summary', { text: older.length ? `詳しい情報・以前のバージョン（${older.length}）` : '詳しい情報' }),
+      el('div', {}, `名前（ID）: ${m.id}`),
+      el('div', { class: 'hash', title: 'ダウンロードしたファイルが改ざんされていないかの確認用', text: `SHA-256: ${v.sha256}` }),
       ...older.map(o => el('div', {}, el('div', {}, el('a', { href: o.file, download: o.file.split('/').pop(), text: `v${o.version}` }),
-        ` ・ ${fmtDate(o.published)} ・ ${fmtSize(o.size)}`), o.changes ? el('p', { class: 'changes', text: o.changes }) : null))) : null,
+        ` ・ ${fmtDate(o.published)} ・ ${fmtSize(o.size)}`), o.changes ? el('p', { class: 'changes', text: o.changes }) : null))),
   );
 }
 
-$('search').addEventListener('input', render);
+let searchTimer = null;
+$('search').addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { view.q = $('search').value.trim(); update(); }, 150);
+});
+$('search').addEventListener('keydown', e => {
+  if (e.key === 'Escape') { $('search').value = ''; view.q = ''; update(); }
+});
+$('sort').onchange = () => { view.sort = $('sort').value; update(); };
+$('ver').onchange = () => { view.ver = $('ver').value; update(); };
+$('no-net').onchange = () => { view.noNet = $('no-net').checked; update(); };
+$('no-write').onchange = () => { view.noWrite = $('no-write').checked; update(); };
+$('more').onclick = () => { view.limit += PAGE; render(); };
+$('reset').onclick = () => {
+  Object.assign(view, { q: '', ver: '', noNet: false, noWrite: false, feats: new Set(), author: '' });
+  $('search').value = ''; $('ver').value = ''; $('no-net').checked = false; $('no-write').checked = false;
+  update();
+};
+// 「/」で検索欄へ
+document.addEventListener('keydown', e => {
+  if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
+  e.preventDefault();
+  showTab('find');
+  $('search').focus();
+});
 
 // ================= 投稿 =================
 let session = null;
@@ -111,13 +245,18 @@ function showSubmit() {
   $('sub-login').classList.toggle('hidden', !!session);
   $('sub-consent').classList.toggle('hidden', !session || consented());
   $('sub-form').classList.toggle('hidden', !session || !consented());
+  $('mine-login').classList.toggle('hidden', !!session);
   $('mine').classList.toggle('hidden', !session);
-  if (!session) { myApproved = new Set(); renderOwned(); }
   $('nav-login').classList.toggle('hidden', !!session);
-  if (session) {
-    $('sub-user').textContent = `${session.user.email} でログイン中`;
-    loadMine();
+  $('nav-user').classList.toggle('hidden', !session);
+  if (!session) {
+    myMods = new Set();
+    renderOwned();
+    return;
   }
+  $('nav-user').textContent = session.user.email;
+  $('sub-user').textContent = `${session.user.email} でログイン中`;
+  loadMine();
 }
 
 $('consent-btn').onclick = async () => {
@@ -139,7 +278,7 @@ $('consent-btn').onclick = async () => {
 function subMsg(text, kind) { const m = $('sub-msg'); m.textContent = text || ''; m.className = 'msg ' + (kind || ''); }
 
 // ---- 更新（公開中の自分の MOD に新しいバージョンを出す） ----
-let owned = {};          // MOD の名前 → 公開中の一覧の情報（自分が公開したもの）
+let owned = {};          // MOD の名前 → 公開中の一覧の情報（自分が持ち主のもの）
 let updateTarget = null; // 更新する MOD の名前
 
 function setUpdate(modId) {
@@ -225,7 +364,7 @@ $('sub-form').onsubmit = async (e) => {
     const wasUpdate = !!updateTarget;
     $('sub-form').reset();
     setUpdate(null);
-    subMsg(`受け付けました。10〜20 分ほどで自動審査が終わり、合格すると${wasUpdate ? '新しいバージョンが' : ''}公開されます。結果は下の「あなたの投稿」に出ます。`, 'ok');
+    subMsg(`受け付けました。10〜20 分ほどで自動審査が終わり、合格すると${wasUpdate ? '新しいバージョンが' : ''}公開されます。結果は「あなたの MOD」に出ます。`, 'ok');
     loadMine();
   } catch (err) {
     subMsg(jaError(err), 'error');
@@ -234,18 +373,24 @@ $('sub-form').onsubmit = async (e) => {
   }
 };
 
-// 自分が公開した MOD（合格した投稿の名前のうち、いま一覧に載っているもの）
-let myApproved = new Set();
+// ================= あなたの MOD =================
+let myMods = new Set();   // 自分が持ち主の MOD の名前（運営者が手元から公開したものも含む）
 function renderOwned() {
   owned = {};
-  for (const m of mods) if (myApproved.has(m.id)) owned[m.id] = m;
-  const list = Object.values(owned);
-  $('owned').classList.toggle('hidden', !session || !list.length);
+  for (const m of mods) if (myMods.has(m.id)) owned[m.id] = m;
+  const all = Object.values(owned).sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+  const q = $('owned-search').value.trim().toLowerCase();
+  const list = all.filter(m => !q || `${m.name} ${m.id}`.toLowerCase().includes(q));
+  $('owned').classList.toggle('hidden', !session || !all.length);
+  $('badge-mine').classList.toggle('hidden', !all.length);
+  $('badge-mine').textContent = all.length;
+  $('owned-count').textContent = q ? `（${all.length} 個中 ${list.length} 個）` : `（${all.length} 個）`;
   $('owned-rows').replaceChildren(...list.map(m => {
     const btn = el('button', { class: 'btn primary', type: 'button', text: '新しいバージョンを投稿' });
     btn.onclick = () => {
+      showTab('submit');
       setUpdate(m.id);
-      $('sub-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      scrollTo({ top: 0 });
       $('sub-file').focus();
     };
     return el('tr', {}, el('td', {}, el('b', { text: m.name }), el('div', { class: 'sub small', text: m.id })),
@@ -253,13 +398,16 @@ function renderOwned() {
   }));
   if (updateTarget && !owned[updateTarget]) setUpdate(null);
 }
+$('owned-search').addEventListener('input', renderOwned);
 
 async function loadMine() {
-  const { data, error } = await sb.from('wm_mod_submissions')
-    .select('id, file_name, status, version, report, created_at, reviewed_at')
-    .order('created_at', { ascending: false }).limit(20);
+  const [{ data, error }, mine] = await Promise.all([
+    sb.from('wm_mod_submissions').select('id, file_name, status, version, report, created_at, reviewed_at')
+      .order('created_at', { ascending: false }).limit(30),
+    sb.rpc('wm_my_mods'),
+  ]);
   if (error) return;
-  myApproved = new Set(data.filter(s => s.status === 'approved').map(s => s.file_name.replace(/\.(py|zip)$/, '')));
+  myMods = new Set([...(mine.data || []), ...data.filter(s => s.status === 'approved').map(s => s.file_name.replace(/\.(py|zip)$/, ''))]);
   renderOwned();
   const rows = data.map(s => {
     const [label, cls] = STATUS[s.status] || [s.status, ''];
@@ -292,6 +440,8 @@ async function loadMine() {
   }
 }
 
+loadView();
+showTab(location.hash.slice(1));
 sb.auth.onAuthStateChange((_event, s) => { session = s; showSubmit(); });
 sb.auth.getSession().then(({ data }) => { session = data.session; showSubmit(); });
 loadMods();

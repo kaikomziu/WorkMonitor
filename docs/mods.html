@@ -15,22 +15,64 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"
         integrity="sha256-hZaWX+kY5lZgChtWjToWj1wNPSKmAIhrtvRKZVXbAec=" crossorigin="anonymous"></script>
 <style>
-  .head { padding: 40px 0 8px; }
-  .head h1 { font-size: clamp(26px, 4vw, 36px); margin: 0 0 8px; }
-  .head p { color: var(--sub); margin: 0; }
-  .warn { border-color: color-mix(in srgb, #e2a03f 55%, var(--line)); background: color-mix(in srgb, #e2a03f 8%, var(--card)); margin: 20px 0; font-size: 14px; }
+  .hidden { display: none !important; }
+
+  /* 左のタブ + 右の中身 */
+  .layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 28px; padding: 28px 0 40px; align-items: start; }
+  .side { position: sticky; top: 76px; }
+  .side h1 { font-size: 22px; margin: 0 0 12px 4px; }
+  .tabs-v { display: flex; flex-direction: column; gap: 4px; }
+  .tabs-v button { font: inherit; text-align: left; display: flex; align-items: center; gap: 10px; width: 100%;
+    border: 0; background: none; color: var(--sub); padding: 10px 12px; border-radius: 10px; cursor: pointer; }
+  .tabs-v button:hover { background: var(--card); color: var(--text); }
+  .tabs-v button.on { background: var(--soft); color: var(--accent); font-weight: 600; }
+  .tabs-v .ico { width: 20px; text-align: center; }
+  .tabs-v .badge { margin-left: auto; font-size: 12px; background: var(--card); border: 1px solid var(--line); color: var(--sub);
+    border-radius: 999px; padding: 0 8px; font-weight: 500; }
+  .side .side-note { margin: 16px 4px 0; font-size: 12px; color: var(--sub); }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: minmax(0, 1fr); gap: 14px; padding-top: 16px; }
+    .side { position: static; }
+    .side h1 { display: none; }
+    .side .side-note { display: none; }
+    .tabs-v { flex-direction: row; overflow-x: auto; gap: 6px; padding-bottom: 2px; }
+    .tabs-v button { width: auto; white-space: nowrap; border: 1px solid var(--line); background: var(--card); }
+    .searchbar kbd { display: none; }
+    .searchbar input { padding-right: 12px; }
+  }
+
+  .panel h2 { font-size: 22px; margin: 0 0 6px; }
+  .panel .intro { color: var(--sub); margin: 0 0 16px; }
+  .warn { border-color: color-mix(in srgb, #e2a03f 55%, var(--line)); background: color-mix(in srgb, #e2a03f 8%, var(--card)); font-size: 14px; }
   .warn b { color: #b9771a; }
   :root[data-theme="dark"] .warn b { color: #e8b25e; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .warn b { color: #e8b25e; } }
-  section { padding: 24px 0; }
-  section h2 { font-size: 22px; margin: 0 0 6px; }
-  section .intro { color: var(--sub); margin: 0 0 16px; }
-  .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
-  .toolbar input { flex: 1 1 260px; }
-  .mods { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 14px; }
+  .warn.slim { padding: 10px 14px; margin-bottom: 14px; }
+
+  /* 検索・絞り込み */
+  .searchbar { position: relative; }
+  .searchbar input { padding-left: 38px; padding-right: 64px; font-size: 16px; }
+  .searchbar .mag { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--sub); pointer-events: none; }
+  .searchbar kbd { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font: 12px Consolas, monospace; color: var(--sub);
+    border: 1px solid var(--line); border-radius: 5px; padding: 0 6px; background: var(--card); }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 12px 0 6px; font-size: 14px; }
+  .filters select { width: auto; padding: 6px 10px; font-size: 14px; }
+  .filters label.opt { display: inline-flex; gap: 6px; align-items: center; color: var(--sub); cursor: pointer; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+  .chip { font: inherit; font-size: 13px; border: 1px solid var(--line); background: var(--card); color: var(--sub);
+    border-radius: 999px; padding: 3px 12px; cursor: pointer; }
+  .chip:hover { color: var(--text); }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+  .chip .n { opacity: .7; margin-left: 4px; }
+  .result-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 4px 0 12px; font-size: 14px; color: var(--sub); flex-wrap: wrap; }
+  .linkbtn { font: inherit; border: 0; background: none; color: var(--accent); cursor: pointer; padding: 0; text-decoration: underline; }
+
+  /* MOD のカード */
+  .mods { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 14px; }
   .mod { display: flex; flex-direction: column; gap: 8px; }
-  .mod h3 { margin: 0; font-size: 18px; overflow-wrap: anywhere; }
+  .mod h3 { margin: 0; font-size: 17px; overflow-wrap: anywhere; }
   .mod .by { color: var(--sub); font-size: 13px; }
+  .mod .by .linkbtn { color: var(--sub); }
   .mod .desc { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
   .mod .perms { display: flex; flex-wrap: wrap; gap: 6px; }
   .tag { font-size: 12px; color: var(--sub); border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; white-space: nowrap; }
@@ -38,13 +80,18 @@
   .tag.ng { color: var(--down); border-color: color-mix(in srgb, var(--down) 45%, var(--line)); }
   .tag.wait { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
   .mod .foot { margin-top: auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .mod .hash { font-family: Consolas, monospace; font-size: 11px; color: var(--sub); overflow-wrap: anywhere; }
   .mod details { font-size: 13px; color: var(--sub); }
-  .mod details a { font-family: Consolas, monospace; }
+  .mod details summary { cursor: pointer; }
+  .mod .hash { font-family: Consolas, monospace; font-size: 11px; overflow-wrap: anywhere; }
+  .changes { white-space: pre-line; font-size: 13px; color: var(--sub); margin: 0; overflow-wrap: anywhere; }
+  .older .changes { margin: 0 0 6px 1em; }
+  mark { background: color-mix(in srgb, #e2a03f 35%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
   .empty { text-align: center; padding: 40px 16px; color: var(--sub); }
+  .more { display: flex; justify-content: center; margin-top: 16px; }
+
+  /* 投稿・あなたの MOD */
   .steps { padding-left: 1.3em; margin: 0; }
-  .steps li { margin: 4px 0; }
-  .hidden { display: none !important; }
+  .steps li { margin: 6px 0; }
   .check { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; margin: 10px 0; }
   .check input { margin-top: 5px; }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -53,14 +100,15 @@
   .scroll { overflow-x: auto; }
   .findings { margin: 6px 0 0; padding-left: 1.2em; font-size: 13px; }
   .findings li.block { color: var(--down); }
-  .findings li.note { color: var(--sub); }
-  .submit-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
-  @media (max-width: 820px) { .submit-grid { grid-template-columns: minmax(0, 1fr); } }
+  .submit-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 14px; }
+  @media (max-width: 1000px) { .submit-grid { grid-template-columns: minmax(0, 1fr); } }
   .rules { font-size: 14px; color: var(--sub); padding-left: 1.2em; margin: 8px 0 0; }
+  .rules li { margin: 4px 0; }
   .update-banner { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap;
     background: var(--soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); border-radius: 10px; padding: 10px 12px; margin-bottom: 4px; }
-  .changes { white-space: pre-line; font-size: 13px; color: var(--sub); margin: 0; overflow-wrap: anywhere; }
-  .older .changes { margin: 0 0 6px 1em; }
+  .card + .card { margin-top: 14px; }
+  .owned-head { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .owned-head input { max-width: 260px; }
   code { background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; font-size: 13px; }
 </style>
 </head>
@@ -70,110 +118,174 @@
     <a class="logo" href="./"><img src="icon.png" alt="">WorkMonitor</a>
     <div class="spacer"></div>
     <div class="links">
-      <a class="text hide-sm" href="#find">MOD を探す</a>
-      <a class="text hide-sm" href="#submit">投稿する</a>
+      <a class="text hide-sm" href="./#download">アプリをダウンロード</a>
       <button class="icon-btn" data-theme-toggle></button>
       <a class="btn primary" href="app.html" id="nav-login">ログイン</a>
+      <span class="sub small hidden" id="nav-user"></span>
     </div>
   </div>
 </nav>
 
-<main class="wrap">
-  <div class="head">
+<main class="wrap layout">
+  <aside class="side">
     <h1>MOD</h1>
-    <p>WorkMonitor に機能を足す MOD を探してダウンロードしたり、自分で作った MOD を投稿したりできます。</p>
-  </div>
+    <nav class="tabs-v" role="tablist" aria-label="MOD のページ">
+      <button role="tab" data-tab="find"><span class="ico">🔍</span>MOD を探す<span class="badge" id="badge-find"></span></button>
+      <button role="tab" data-tab="submit"><span class="ico">⬆️</span>投稿・更新</button>
+      <button role="tab" data-tab="mine"><span class="ico">📦</span>あなたの MOD<span class="badge hidden" id="badge-mine"></span></button>
+      <button role="tab" data-tab="howto"><span class="ico">📘</span>入れ方・注意</button>
+    </nav>
+    <p class="side-note">MOD は利用者が作ったプログラムです。利用は自己責任でお願いします（<a href="terms.html#mods">利用規約 第8条</a>）。</p>
+  </aside>
 
-  <div class="card warn" role="note">
-    <b>⚠ MOD の利用は自己責任です。</b>
-    ここにある MOD は利用者が作って投稿したもので、運営者が作ったものではありません。公開前に自動審査で危険な書き方がないかを調べていますが、
-    自動審査ですべての問題を見つけられるわけではなく、安全や動作は保証できません。MOD はアプリと同じ権限で動くプログラムです。
-    内容を確認し、信頼できるものだけ入れてください。MOD の利用で生じた損害について、運営者は責任を負いません
-    （<a href="terms.html#mods">利用規約 第8条</a>）。ダウンロードした時点で、この内容に同意したものとみなします。
-  </div>
+  <div>
+    <!-- ===== 探す ===== -->
+    <section class="panel" id="tab-find" role="tabpanel">
+      <h2>MOD を探す</h2>
+      <div class="card warn slim" role="note">
+        <b>⚠ MOD の利用は自己責任です。</b>
+        利用者が投稿したもので、自動審査は安全を保証しません。MOD の利用で生じた損害について運営者は責任を負いません
+        （<a href="terms.html#mods">利用規約 第8条</a>）。ダウンロードした時点で同意したものとみなします。
+      </div>
 
-  <section id="find">
-    <h2>MOD を探す</h2>
-    <div class="toolbar">
-      <input type="search" id="search" placeholder="名前・作者・説明で探す" aria-label="MOD を探す">
-      <span class="sub small" id="count"></span>
-    </div>
-    <div class="mods" id="mods"><div class="card empty">読み込んでいます…</div></div>
-  </section>
+      <div class="searchbar">
+        <span class="mag" aria-hidden="true">🔍</span>
+        <input type="search" id="search" placeholder="名前・作者・説明・できることで探す（スペースで区切って絞り込み）" aria-label="MOD を探す" autocomplete="off">
+        <kbd aria-hidden="true">/</kbd>
+      </div>
+      <div class="filters">
+        <label>並べ替え
+          <select id="sort">
+            <option value="new">新しい順</option>
+            <option value="name">名前順</option>
+            <option value="small">ファイルが小さい順</option>
+          </select></label>
+        <label>必要なバージョン
+          <select id="ver">
+            <option value="">すべて</option>
+            <option value="1">WorkMonitor 1.6.0 で使えるもの</option>
+          </select></label>
+        <label class="opt"><input type="checkbox" id="no-net"> インターネットに接続しない</label>
+        <label class="opt"><input type="checkbox" id="no-write"> ファイルを書き込まない</label>
+      </div>
+      <div class="chips" id="chips" aria-label="できることで絞り込む"></div>
+      <div class="result-bar">
+        <span id="count"></span>
+        <button class="linkbtn hidden" id="reset" type="button">条件をすべて外す</button>
+      </div>
+      <div class="mods" id="mods"><div class="card empty">読み込んでいます…</div></div>
+      <div class="more hidden" id="more-wrap"><button class="btn" id="more" type="button"></button></div>
+    </section>
 
-  <section>
-    <h2>入れ方</h2>
-    <div class="card">
-      <ol class="steps">
-        <li>WorkMonitor を <b>1.6.0 以降</b>にします（<a href="./#download">ダウンロード</a>）。「WorkMonitor 1.7.0 以降が必要」と書かれた MOD は、1.7.0 以降で使えます。</li>
-        <li>上の一覧から MOD をダウンロードします（<code>.py</code> か <code>.zip</code>）。</li>
-        <li>ダウンロードしたファイルを、WorkMonitor のメイン画面か「設定 → Mods」に<b>ドラッグ＆ドロップ</b>します。</li>
-        <li>確認が出たら「はい」を押すと、すぐに動き始めます。オン・オフや削除は「設定 → Mods」でできます。</li>
-      </ol>
-    </div>
-  </section>
-
-  <section id="submit">
-    <h2>MOD を投稿する</h2>
-    <p class="intro">投稿した MOD は自動で審査され、問題がなければ <a href="https://github.com/kaikomziu/WorkMonitor/tree/main/docs/mods">GitHub</a> に置かれて、この一覧からダウンロードできるようになります（10〜20 分ほどかかります）。</p>
-    <div class="submit-grid">
-      <div class="card">
-        <div id="sub-login">
-          <p>投稿するには、WorkMonitor のアカウントでログインしてください。</p>
-          <a class="btn primary" href="app.html">ログイン・登録</a>
-          <p class="sub small">ログインしたあと、このページ（上のメニューの「MOD」）に戻ってください。</p>
-        </div>
-        <div id="sub-consent" class="hidden">
-          <p><b>利用規約が新しくなりました。</b>投稿するには、新しい<a href="terms.html" target="_blank" rel="noopener">利用規約</a>と<a href="privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>への同意が必要です。</p>
-          <label class="check"><input type="checkbox" id="consent-agree"> <span>利用規約とプライバシーポリシーに同意する</span></label>
-          <button class="btn primary" id="consent-btn">同意する</button>
-        </div>
-        <form id="sub-form" class="hidden">
-          <p class="sub small" id="sub-user"></p>
-          <div class="update-banner hidden" id="sub-update">
-            <div><b id="sub-update-title"></b><div class="small" id="sub-update-desc"></div></div>
-            <button class="btn" type="button" id="sub-update-cancel">新しい MOD を投稿する</button>
+    <!-- ===== 投稿・更新 ===== -->
+    <section class="panel hidden" id="tab-submit" role="tabpanel">
+      <h2>投稿・更新</h2>
+      <p class="intro">投稿した MOD は自動で審査され、問題がなければ <a href="https://github.com/kaikomziu/WorkMonitor/tree/main/docs/mods">GitHub</a> に置かれて、「MOD を探す」からダウンロードできるようになります（10〜20 分ほど）。</p>
+      <div class="submit-grid">
+        <div class="card">
+          <div id="sub-login">
+            <p>投稿するには、WorkMonitor のアカウントでログインしてください。</p>
+            <a class="btn primary" href="app.html">ログイン・登録</a>
+            <p class="sub small">ログインしたあと、このページに戻ってください。</p>
           </div>
-          <label class="field"><span>MOD のファイル（<code>.py</code> か <code>.zip</code>、512KB まで）</span>
-            <input type="file" id="sub-file" accept=".py,.zip" required></label>
-          <div class="sub small" id="sub-file-info"></div>
-          <label class="field"><span>更新内容（任意・500 文字まで。一覧に公開されます）</span>
-            <textarea id="sub-changes" rows="3" maxlength="500" placeholder="例: 休憩の通知を出せるようにしました"></textarea></label>
-          <label class="check"><input type="checkbox" id="sub-agree"> <span><a href="terms.html#mods" target="_blank" rel="noopener">利用規約 第8条（MOD）</a>に同意し、この MOD を公開・配布する権利があることを確認しました。MOD は誰でも見られる形で公開されます。</span></label>
-          <button class="btn primary" type="submit" id="sub-btn">投稿する</button>
-          <div class="msg" id="sub-msg" role="status"></div>
-        </form>
+          <div id="sub-consent" class="hidden">
+            <p><b>利用規約が新しくなりました。</b>投稿するには、新しい<a href="terms.html" target="_blank" rel="noopener">利用規約</a>と<a href="privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>への同意が必要です。</p>
+            <label class="check"><input type="checkbox" id="consent-agree"> <span>利用規約とプライバシーポリシーに同意する</span></label>
+            <button class="btn primary" id="consent-btn">同意する</button>
+          </div>
+          <form id="sub-form" class="hidden">
+            <p class="sub small" id="sub-user"></p>
+            <div class="update-banner hidden" id="sub-update">
+              <div><b id="sub-update-title"></b><div class="small" id="sub-update-desc"></div></div>
+              <button class="btn" type="button" id="sub-update-cancel">新しい MOD を投稿する</button>
+            </div>
+            <label class="field"><span>MOD のファイル（<code>.py</code> か <code>.zip</code>、512KB まで）</span>
+              <input type="file" id="sub-file" accept=".py,.zip" required></label>
+            <div class="sub small" id="sub-file-info"></div>
+            <label class="field"><span>更新内容（任意・500 文字まで。一覧に公開されます）</span>
+              <textarea id="sub-changes" rows="3" maxlength="500" placeholder="例: 休憩の通知を出せるようにしました"></textarea></label>
+            <label class="check"><input type="checkbox" id="sub-agree"> <span><a href="terms.html#mods" target="_blank" rel="noopener">利用規約 第8条（MOD）</a>に同意し、この MOD を公開・配布する権利があることを確認しました。MOD は誰でも見られる形で公開されます。</span></label>
+            <button class="btn primary" type="submit" id="sub-btn">投稿する</button>
+            <div class="msg" id="sub-msg" role="status"></div>
+          </form>
+        </div>
+        <div class="card">
+          <b>投稿のきまり</b>
+          <ul class="rules">
+            <li>ファイル名がそのまま MOD の名前になります。<b>英小文字・数字・<code>_</code>・<code>-</code> で 2〜40 文字</b>にしてください（例: <code>my_timer.py</code>）。</li>
+            <li><code>MOD_INFO</code> に name・version・author・description を書いてください。author と説明は公開されます。</li>
+            <li><b>更新</b>：MOD_INFO の version を上げて、同じファイル名で投稿します（「あなたの MOD」の「新しいバージョンを投稿」からもできます）。更新できるのは最初に公開した人だけです。</li>
+            <li>ほかのプログラムの起動、組み立てたコードの実行、ファイルの削除、パスワードやトークンの読み取り、<code>api.app</code> の利用などは、自動審査で不合格になります。詳しくは <a href="https://github.com/kaikomziu/WorkMonitor/blob/main/mods/modreadme.txt">modreadme.txt</a> の「12. 公式サイトへの投稿」を見てください。</li>
+            <li>通信やファイルの書き込みなどをする MOD は、その内容が一覧に表示されます。</li>
+            <li>審査中は 3 件まで、1 日に 10 件まで投稿できます。結果は「あなたの MOD」に出ます。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== あなたの MOD ===== -->
+    <section class="panel hidden" id="tab-mine" role="tabpanel">
+      <h2>あなたの MOD</h2>
+      <div class="card" id="mine-login">
+        <p>あなたが公開した MOD と投稿の審査結果は、ログインすると見られます。</p>
+        <a class="btn primary" href="app.html">ログイン・登録</a>
+      </div>
+      <div class="card hidden" id="owned">
+        <div class="owned-head">
+          <b>公開中の MOD <span class="sub" id="owned-count"></span></b>
+          <input type="search" id="owned-search" placeholder="名前で絞り込む" aria-label="公開中の MOD を絞り込む">
+        </div>
+        <p class="sub small" style="margin:4px 0 0">MOD_INFO の version を上げて「新しいバージョンを投稿」すると更新できます。前のバージョンも「以前のバージョン」に残ります。</p>
+        <div class="scroll"><table>
+          <thead><tr><th>MOD</th><th>公開中</th><th>更新日時</th><th></th></tr></thead>
+          <tbody id="owned-rows"></tbody>
+        </table></div>
+      </div>
+      <div class="card hidden" id="mine">
+        <b>投稿と審査結果</b>
+        <div class="scroll"><table>
+          <thead><tr><th>ファイル</th><th>投稿日時</th><th>状態</th><th>結果</th><th></th></tr></thead>
+          <tbody id="mine-rows"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- ===== 入れ方・注意 ===== -->
+    <section class="panel hidden" id="tab-howto" role="tabpanel">
+      <h2>入れ方・注意</h2>
+      <div class="card">
+        <b>MOD の入れ方</b>
+        <ol class="steps">
+          <li>WorkMonitor を <b>1.6.0 以降</b>にします（<a href="./#download">ダウンロード</a>）。「WorkMonitor 1.7.0 以降が必要」と書かれた MOD は 1.7.0 以降で使えます。</li>
+          <li><b>かんたんな方法（WorkMonitor 1.8.0 以降）</b>：アプリの「設定 → Mods → 🧩 MOD ストア」で MOD を選んで「入れる」を押すだけです。「ストアから入れた MOD を自動で更新する」をオンにすると、新しいバージョンが自動で入ります（初期はオフ）。以下は、サイトからダウンロードして入れる方法です。</li>
+          <li>「MOD を探す」から MOD をダウンロードします（<code>.py</code> か <code>.zip</code>）。</li>
+          <li>ダウンロードしたファイルを、WorkMonitor のメイン画面か「設定 → Mods」に<b>ドラッグ＆ドロップ</b>します。</li>
+          <li>確認が出たら「はい」を押すと、すぐに動き始めます。オン・オフや削除は「設定 → Mods」でできます。</li>
+          <li>新しいバージョンが出たら、同じようにドラッグ＆ドロップすると上書きで更新できます（MOD が保存したデータは残ります）。</li>
+        </ol>
+      </div>
+      <div class="card warn">
+        <b>⚠ MOD の利用は自己責任です。</b>
+        <p style="margin:6px 0 0">ここにある MOD は利用者が作って投稿したもので、運営者が作ったものではありません。公開前に自動審査で危険な書き方がないかを調べていますが、
+        自動審査ですべての問題を見つけられるわけではなく、安全や動作は保証できません。MOD はアプリと同じ権限で動くプログラムです。
+        「中身を見る」で内容を確認し、信頼できるものだけ入れてください。MOD の利用で生じた損害について、運営者は責任を負いません
+        （<a href="terms.html#mods">利用規約 第8条</a>）。ダウンロードした時点で、この内容に同意したものとみなします。</p>
       </div>
       <div class="card">
-        <b>投稿のきまり</b>
+        <b>カードの見方</b>
         <ul class="rules">
-          <li>ファイル名がそのまま MOD の名前になります。<b>英小文字・数字・<code>_</code>・<code>-</code> で 2〜40 文字</b>にしてください（例: <code>my_timer.py</code>）。</li>
-          <li><code>MOD_INFO</code> に name・version・author・description を書いてください。author と説明は公開されます。</li>
-          <li><b>更新</b>：MOD_INFO の version を上げて、同じファイル名で投稿します（ログイン後に出る「あなたの MOD」の「新しいバージョンを投稿」からもできます）。更新できるのは、最初に公開した人だけです。</li>
-          <li>ほかのプログラムの起動、組み立てたコードの実行、ファイルの削除、パスワードやトークンの読み取り、<code>api.app</code> の利用などは、自動審査で不合格になります。詳しくは <a href="https://github.com/kaikomziu/WorkMonitor/blob/main/mods/modreadme.txt">modreadme.txt</a> の「12. 公式サイトへの投稿」を見てください。</li>
-          <li>通信やファイルの書き込みなどをする MOD は、その内容が一覧に表示されます。</li>
-          <li>審査中は 3 件まで、1 日に 10 件まで投稿できます。</li>
+          <li><span class="tag ok">✓ 自動審査済み</span> … 公開前の自動審査に合格しています。</li>
+          <li><span class="tag">インターネットに接続します</span> など … 自動審査で分かった、その MOD が行うことです。</li>
+          <li><span class="tag wait">WorkMonitor 1.7.0 以降が必要</span> … 古いバージョンでは使えません。</li>
+          <li>「詳しい情報」の SHA-256 は、ダウンロードしたファイルが改ざんされていないかを確かめるためのものです。</li>
         </ul>
       </div>
-    </div>
-
-    <div class="card hidden" id="owned" style="margin-top:14px">
-      <b>あなたの MOD</b>
-      <p class="sub small" style="margin:4px 0 0">公開中の MOD を更新できます。MOD_INFO の version を上げて、同じファイル名で投稿してください。審査に合格すると新しいバージョンが公開され、前のバージョンも「以前のバージョン」に残ります。</p>
-      <div class="scroll"><table>
-        <thead><tr><th>MOD</th><th>公開中のバージョン</th><th>更新日時</th><th></th></tr></thead>
-        <tbody id="owned-rows"></tbody>
-      </table></div>
-    </div>
-
-    <div class="card hidden" id="mine" style="margin-top:14px">
-      <b>あなたの投稿</b>
-      <div class="scroll"><table>
-        <thead><tr><th>ファイル</th><th>投稿日時</th><th>状態</th><th>結果</th><th></th></tr></thead>
-        <tbody id="mine-rows"></tbody>
-      </table></div>
-    </div>
-  </section>
+      <div class="card">
+        <b>問題のある MOD を見つけたら</b>
+        <p class="sub" style="margin:6px 0 0"><a href="https://github.com/kaikomziu/WorkMonitor/issues">GitHub の Issues</a> でお知らせください（MOD の名前を書いてください）。</p>
+      </div>
+    </section>
+  </div>
 </main>
 
 <footer>
