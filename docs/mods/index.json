@@ -1,6 +1,63 @@
 {
- "updated": "2026-10-29T13:17:45Z",
+ "updated": "2026-11-10T14:13:10Z",
  "mods": [
+  {
+   "id": "gacha",
+   "versions": [
+    {
+     "version": "2.0.0",
+     "file": "mods/files/gacha/2.0.0/gacha.py",
+     "size": 54518,
+     "sha256": "edbebf3d65ccc5c51f653f4187ebf1157b00b7988899af6a63e4a7b0aafae12d",
+     "published": "2026-11-10T14:13:10Z",
+     "permissions": [
+      "dialog",
+      "notify",
+      "panel",
+      "sound",
+      "thread"
+     ],
+     "api": 1,
+     "source_sha256": "edbebf3d65ccc5c51f653f4187ebf1157b00b7988899af6a63e4a7b0aafae12d",
+     "changes": "ガチャと図鑑を専用画面に。オーブのレア度昇格・爆発・カードめくりなど超派手な演出と効果音を追加。10連の確定枠で図鑑の個数が二重に増える不具合を修正"
+    },
+    {
+     "version": "1.1.0",
+     "file": "mods/files/gacha/1.1.0/gacha.py",
+     "size": 6808,
+     "sha256": "1899b838d61079b9f36827bab423d65cb24c4553676b4c6162c17ac578b8482f",
+     "published": "2026-10-29T13:09:36Z",
+     "permissions": [
+      "dialog",
+      "notify",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "1899b838d61079b9f36827bab423d65cb24c4553676b4c6162c17ac578b8482f",
+     "changes": "10連ガチャ（SR以上1つ確定）・天井（50回で SSR 確定）・アイテム追加・レア度別のコンプ報酬を追加"
+    },
+    {
+     "version": "1.0.0",
+     "file": "mods/files/gacha/1.0.0/gacha.py",
+     "size": 4032,
+     "sha256": "8fc17c3fb2ec7355d8106fcac2229cf1f66d4d8559d84af5c369cc054d132059",
+     "published": "2026-10-29T11:59:54Z",
+     "permissions": [
+      "dialog",
+      "notify",
+      "panel"
+     ],
+     "api": 1,
+     "source_sha256": "8fc17c3fb2ec7355d8106fcac2229cf1f66d4d8559d84af5c369cc054d132059",
+     "changes": ""
+    }
+   ],
+   "name": "作業ガチャ",
+   "author": "かるわか",
+   "description": "作業30分でガチャチケット1枚。N・R・SR・SSR・UR のアイテムを集めて図鑑を埋めましょう。引くときは専用画面で超派手な演出つき。10連はSR以上確定、50回で SSR 確定の天井つき。",
+   "version": "2.0.0",
+   "updated": "2026-11-10T14:13:10Z"
+  },
   {
    "id": "music_indicator",
    "versions": [
@@ -262,46 +319,6 @@
    "name": "作業の森",
    "author": "かるわか",
    "description": "作業30分ごとに木が1本生えます。休憩なしで続けた分は大きな木に、たまにめずらしい木も。図鑑・森の称号・過去の森の記録つき。",
-   "version": "1.1.0",
-   "updated": "2026-10-29T13:09:36Z"
-  },
-  {
-   "id": "gacha",
-   "versions": [
-    {
-     "version": "1.1.0",
-     "file": "mods/files/gacha/1.1.0/gacha.py",
-     "size": 6808,
-     "sha256": "1899b838d61079b9f36827bab423d65cb24c4553676b4c6162c17ac578b8482f",
-     "published": "2026-10-29T13:09:36Z",
-     "permissions": [
-      "dialog",
-      "notify",
-      "panel"
-     ],
-     "api": 1,
-     "source_sha256": "1899b838d61079b9f36827bab423d65cb24c4553676b4c6162c17ac578b8482f",
-     "changes": "10連ガチャ（SR以上1つ確定）・天井（50回で SSR 確定）・アイテム追加・レア度別のコンプ報酬を追加"
-    },
-    {
-     "version": "1.0.0",
-     "file": "mods/files/gacha/1.0.0/gacha.py",
-     "size": 4032,
-     "sha256": "8fc17c3fb2ec7355d8106fcac2229cf1f66d4d8559d84af5c369cc054d132059",
-     "published": "2026-10-29T11:59:54Z",
-     "permissions": [
-      "dialog",
-      "notify",
-      "panel"
-     ],
-     "api": 1,
-     "source_sha256": "8fc17c3fb2ec7355d8106fcac2229cf1f66d4d8559d84af5c369cc054d132059",
-     "changes": ""
-    }
-   ],
-   "name": "作業ガチャ",
-   "author": "かるわか",
-   "description": "作業30分でガチャチケット1枚。N・R・SR・SSR・UR のアイテムを集めて図鑑を埋めましょう。10連はSR以上確定、50回で SSR 確定の天井つき。",
    "version": "1.1.0",
    "updated": "2026-10-29T13:09:36Z"
   },
